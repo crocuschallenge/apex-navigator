@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KAT FIELD STANDARD v3.0</title>
+  <!-- Pretendard 폰트 적용 (가독성 최적화) -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    /* =========================================
+       1. BASE & RESET
+       ========================================= */
+    :root {
+      --navy: #0B1426;
+      --lime: #C6FF00;
+      --white: #FFFFFF;
+      --soft: rgba(255, 255, 255, 0.86);
+      --gray: #8E8E93;
+      --line: rgba(255, 255, 255, 0.12);
+      --lime-line: rgba(198, 255, 0, 0.24);
+      --body-size: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--navy);
+      color: var(--soft);
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: var(--body-size);
+      line-height: 1.8;
+      letter-spacing: -0.015em;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
+    }
+
+    /* 중앙 정렬 컨테이너 (모바일 화면에 딱 맞게) */
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 16px 80px;
+      position: relative;
+    }
+
+    /* =========================================
+       2. FIXED UI COMPONENTS
+       ========================================= */
+    /* 상단 진행률 바 */
+    .progress-bar {
+      position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+      background: rgba(255,255,255,0.05); z-index: 1000;
+    }
+    .progress-fill {
+      height: 100%; width: 0%; background: var(--lime);
+      box-shadow: 0 0 10px rgba(198,255,0,0.6);
+    }
+
+    /* Sticky 미니 목차 */
+    .sticky-header {
+      position: fixed; top: 3px; left: 0; width: 100%; z-index: 999;
+      display: flex; gap: 8px; align-items: center; justify-content: center;
+      padding: 10px 16px; background: rgba(11,20,38,0.85);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--lime-line);
+      transform: translateY(-100%); transition: transform 0.3s ease;
+    }
+    .sticky-header.show { transform: translateY(0); }
+    
+    .sticky-wrap {
+      width: 100%; max-width: 600px; display: flex; align-items: center; gap: 8px;
+    }
+    .sticky-no {
+      background: var(--lime); color: var(--navy); padding: 2px 8px;
+      border-radius: 12px; font-weight: 900; font-size: 10px;
+    }
+    .sticky-title {
+      color: var(--white); font-weight: 700; font-size: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Back to Top 버튼 */
+    .btn-top {
+      position: fixed; bottom: 20px; right: 20px; width: 44px; height: 44px;
+      background: var(--lime); color: var(--navy); font-size: 20px; font-weight: 900;
+      border: none; border-radius: 50%; box-shadow: 0 4px 12px rgba(198,255,0,0.3);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transform: translateY(10px); transition: 0.3s ease; z-index: 900; cursor: pointer;
+    }
+    .btn-top.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+    /* =========================================
+       3. PAGE SECTIONS
+       ========================================= */
+    /* Hero Cover */
+    .hero {
+      min-height: 80vh; display: flex; flex-direction: column; justify-content: center;
+      padding: 40px 0 30px; border-bottom: 1px solid var(--lime-line);
+    }
+    .hero-logo { color: var(--lime); font-size: 28px; font-weight: 900; line-height: 1; margin-bottom: 24px; }
+    .hero-logo small { display: block; color: var(--white); font-size: 9px; letter-spacing: 0.15em; margin-top: 6px; font-weight: 600; }
+    .hero h1 { font-size: 34px; color: var(--white); font-weight: 900; line-height: 1.15; letter-spacing: -0.05em; word-break: keep-all; }
+    .hero-sub { color: var(--white); font-size: 16px; font-weight: 700; margin-top: 12px; }
+    .hero-version {
+      display: inline-flex; padding: 6px 14px; border: 1px solid var(--lime-line);
+      border-radius: 20px; color: var(--lime); font-size: 10px; font-weight: 800; margin-top: 24px; width: max-content;
+    }
+    .hero-motto {
+      margin-top: 32px; padding: 16px; border-left: 3px solid var(--lime);
+      background: rgba(255,255,255,0.03); border-radius: 0 12px 12px 0;
+    }
+    .hero-motto b { display: block; color: var(--white); font-size: 18px; line-height: 1.4; }
+    .hero-program { margin-top: 24px; color: var(--soft); font-size: 12px; font-weight: 700; }
+
+    /* Trust & System Cards */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px 0; }
+    @media (max-width: 380px) { .grid-2 { grid-template-columns: 1fr; } }
+    
+    .card {
+      border: 1px solid var(--line); background: rgba(255,255,255,0.02);
+      border-radius: 12px; padding: 16px 14px;
+    }
+    .card b { display: block; color: var(--lime); font-size: 11px; margin-bottom: 6px; font-weight: 800; }
+    .card span { display: block; color: var(--gray); font-size: 11px; line-height: 1.5; word-break: keep-all; }
+    .sec-title { font-size: 18px; color: var(--white); font-weight: 800; margin: 30px 0 10px; }
+    
+    /* Guide Box */
+    .guide-box {
+      padding: 16px; border: 1px solid var(--lime-line); border-radius: 12px;
+      background: rgba(198,255,0,0.04); color: var(--soft); font-size: 11.5px;
+      word-break: keep-all; margin-bottom: 30px;
+    }
+
+    /* =========================================
+       4. MANUAL VIEWER (TOC & SEARCH)
+       ========================================= */
+    .tools-wrap {
+      position: sticky; top: 40px; z-index: 100; background: rgba(11,20,38,0.95);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      padding: 16px 0; margin: 0 -16px 20px; border-bottom: 1px solid var(--line);
+    }
+    .tools-inner { padding: 0 16px; }
+    
+    .search-input {
+      width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line); border-radius: 10px;
+      color: var(--white); font-size: 13px; margin-bottom: 12px; outline: none; font-family: inherit;
+    }
+    .search-input:focus { border-color: var(--lime); }
+    
+    .toc-scroll {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none;
+    }
+    .toc-scroll::-webkit-scrollbar { display: none; }
+    .toc-chip {
+      flex: 0 0 auto; padding: 8px 14px; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line); border-radius: 20px;
+      color: var(--gray); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .toc-chip.active { background: var(--lime); color: var(--navy); border-color: var(--lime); }
+    
+    .action-btns { display: grid; grid-template-columns: 1fr 1fr 50px 50px; gap: 8px; }
+    .btn-action {
+      padding: 10px 0; background: rgba(198,255,0,0.05); border: 1px solid var(--lime-line);
+      border-radius: 8px; color: var(--lime); font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+
+    /* =========================================
+       5. ACCORDION (CSS GRID 방식 - 아주 부드러움)
+       ========================================= */
+    .acc-item {
+      margin-bottom: 12px; border: 1px solid var(--line); border-radius: 14px;
+      background: rgba(255,255,255,0.015); overflow: hidden;
+    }
+    .acc-input { display: none; }
+    .acc-head {
+      display: flex; align-items: center; padding: 18px 16px; cursor: pointer;
+      background: rgba(255,255,255,0.02);
+    }
+    .acc-no {
+      background: var(--lime); color: var(--navy); font-size: 10px; font-weight: 900;
+      padding: 4px 8px; border-radius: 12px; margin-right: 14px; flex-shrink: 0;
+    }
+    .acc-title { flex: 1; color: var(--white); font-size: 14px; font-weight: 800; line-height: 1.4; word-break: keep-all; }
+    .acc-arrow {
+      width: 10px; height: 10px; border-right: 2px solid var(--lime); border-bottom: 2px solid var(--lime);
+      transform: rotate(45deg); transition: 0.3s ease; margin-left: 12px; flex-shrink: 0;
+    }
+    
+    /* 애니메이션 핵심 로직 */
+    .acc-body-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s ease; }
+    .acc-body-inner { overflow: hidden; }
+    
+    .acc-input:checked ~ .acc-head { border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.05); }
+    .acc-input:checked ~ .acc-head .acc-arrow { transform: rotate(225deg); }
+    .acc-input:checked ~ .acc-body-wrap { grid-template-rows: 1fr; }
+    .acc-item:has(.acc-input:checked) { border-color: rgba(198,255,0,0.3); }
+
+    /* =========================================
+       6. TEXT & TABLE STYLING
+       ========================================= */
+    .manual-content { padding: 24px 16px; }
+    .manual-content p { margin-bottom: 16px; word-break: keep-all; text-align: justify; }
+    .manual-content h3 { font-size: 15px; color: var(--white); margin: 32px 0 16px; padding-top: 16px; border-top: 1px solid var(--line); font-weight: 800; }
+    .manual-content h4 { font-size: 13px; color: var(--lime); margin: 20px 0 10px; }
+    
+    /* 강조 박스 */
+    .box-doctrine {
+      padding: 16px; border-left: 3px solid var(--lime); background: rgba(198,255,0,0.05);
+      color: var(--white); font-size: 13px; font-weight: 800; margin-bottom: 20px; border-radius: 0 8px 8px 0;
+    }
+    .box-warning {
+      padding: 14px; background: rgba(255,0,0,0.1); border: 1px solid rgba(255,50,50,0.3);
+      color: #FFCACA; font-weight: 700; border-radius: 8px; margin-bottom: 16px;
+    }
+    
+    /* 모바일 테이블 (가로 스크롤 허용) */
+    .table-container { width: 100%; overflow-x: auto; margin-bottom: 20px; border-radius: 8px; border: 1px solid var(--line); scrollbar-width: thin; }
+    .custom-table { display: grid; min-width: 360px; grid-template-columns: repeat(var(--cols), 1fr); background: rgba(255,255,255,0.02); }
+    .cell { padding: 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 11px; color: var(--soft); word-break: keep-all; }
+    .cell.header { background: rgba(198,255,0,0.05); color: var(--lime); font-weight: 800; }
+    .cell:last-child { border-right: none; }
+
+    /* 키워드 하이라이트 */
+    mark { background: rgba(198,255,0,0.2); color: var(--lime); padding: 0 4px; border-radius: 4px; font-weight: 800; }
+  </style>
+</head>
+<body>
+
+  <!-- 진행률 바 -->
+  <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+  
+  <!-- 상단 고정 목차 -->
+  <div class="sticky-header" id="stickyHeader">
+    <div class="sticky-wrap">
+      <span class="sticky-no" id="stickyNo">00</span>
+      <span class="sticky-title" id="stickyTitle">KAT 장거리 트레킹 표준교범</span>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- 1. Hero Cover -->
+    <header class="hero">
+      <div class="hero-logo">KAT<small>KOREA ACTION TRAIL</small></div>
+      <h1>KAT 장거리<br>트레킹 표준교범</h1>
+      <div class="hero-sub">안전·운용 공식 야전 교범</div>
+      <div class="hero-version">OFFICIAL FIELD STANDARD v3.0</div>
+      <div class="hero-motto"><b>Trail is not a race.</b><b>Trail is a mission.</b></div>
+      <div class="hero-program">KAT CHALLENGE<br>100K · 200K · 300K</div>
+    </header>
+
+    <!-- 2. Trust Strip -->
+    <section class="grid-2">
+      <div class="card"><b>KAT 공식 현장 기준 확정본</b><span>참가자·리더·운영진·의료 담당자 공통 기준</span></div>
+      <div class="card"><b>100K · 200K · 300K 적용</b><span>장거리 트레킹·하중 보행·팀 종주 환경 기준</span></div>
+    </section>
+
+    <!-- 3. Safety System -->
+    <h2 class="sec-title">KAT Safety System</h2>
+    <section class="grid-2" style="padding-top:0;">
+      <div class="card"><b>01. Preservation</b><span>신체 자원 보존</span></div>
+      <div class="card"><b>02. Adaptation</b><span>환경 변화 대응</span></div>
+      <div class="card"><b>03. Decision</b><span>데이터 기반 판단</span></div>
+      <div class="card"><b>04. Loadout</b><span>장비·하중 운용</span></div>
+      <div class="card"><b>05. Field Response</b><span>즉시 대응</span></div>
+      <div class="card"><b>06. Recovery</b><span>종주 후 회복</span></div>
+    </section>
+
+    <div class="guide-box">
+      아래 전문 교범은 원문 내용을 훼손 없이 보존한 모바일 뷰어입니다. 검색, 목차, 전체 펼침 기능을 통해 필요한 운용 기준으로 빠르게 이동하십시오.
+    </div>
+
+    <!-- 4. Manual Control (Sticky) -->
+    <div class="tools-wrap">
+      <div class="tools-inner">
+        <input type="text" class="search-input" id="searchInput" placeholder="교범 검색: 물집, 저체온, 라면 스프, GPS...">
+        <div class="toc-scroll">
+          <button class="toc-chip" onclick="openSection('sec01')">I. MISSION</button>
+          <button class="toc-chip" onclick="openSection('sec02')">II. FAILURE</button>
+          <button class="toc-chip" onclick="openSection('sec03')">III. KOREA</button>
+          <button class="toc-chip" onclick="openSection('sec04')">IV. LOADOUT</button>
+          <button class="toc-chip" onclick="openSection('sec05')">V. KINEMATIC</button>
+        </div>
+        <div class="action-btns">
+          <button class="btn-action" id="btnExpandAll">전체 펼침</button>
+          <button class="btn-action" id="btnCollapseAll">전체 접기</button>
+          <button class="btn-action" id="btnFontMinus">A−</button>
+          <button class="btn-action" id="btnFontPlus">A+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Full Manual Accordion -->
+    <div id="manualContainer">
+
+      <!-- I. MISSION DOCTRINE -->
+      <div class="acc-item section-target" data-no="01" data-title="I. MISSION DOCTRINE">
+        <input type="checkbox" id="sec01" class="acc-input">
+        <label class="acc-head" for="sec01">
+          <span class="acc-no">01</span><div class="acc-title">I. MISSION DOCTRINE — 종주의 본질과 운영 원칙</div><i class="acc-arrow"></i>
+        </label>
+        <div class="acc-body-wrap"><div class="acc-body-inner">
+          <div class="manual-content">
+            <h4>1. 장거리 트레킹 종주의 본질</h4>
+            <p>장거리 트레킹은 단순한 체력 소모 활동이 아니다. 참가자가 자신의 신체 상태, 장비, 보급, 체온, 판단력, 회복 과정을 스스로 관리하며 목적지까지 이동하는 장기 운용 과정이다.</p>
+            <p>KAT CHALLENGE에서 중요한 것은 빠른 속도가 아니라 안정적인 지속 이동이다. 끝까지 가는 사람은 가장 빠른 사람이 아니라, 가장 적게 무너지고 가장 정확하게 판단한 사람이다.</p>
+            <p>트레일은 참가자에게 단 하나의 질문을 던진다. <mark>“당신은 지금 자신의 상태를 정확히 알고 있는가?”</mark> 이 질문에 답하지 못하는 참가자는 체력이 남아 있어도 무너진다.</p>
+            
+            <h4>2. 장거리 종주가 무너지는 3가지 통제력 상실</h4>
+            <p><strong>2.1 L.O.C — 환경 통제 실패 (Loss of Control)</strong><br>능선의 갑작스러운 기온 강하, 폭우, 강풍, 야간의 시야 손실, 안개 속 방향 상실은 훈련된 체력과 무관하게 즉시 이동 중단을 강요할 수 있다.</p>
+            <p><strong>2.2 Logistics Error — 보급 통제 실패</strong><br>배낭의 하중과 신체의 에너지·수분 소모량 사이의 균형이 무너지는 순간 무너진다.</p>
+            <p><strong>2.3 Micro-Injury Ignorance — 미세 부상 방치</strong><br>신발 속 작은 모래알 하나는 종주에서 결코 작은 문제가 아니다.</p>
+
+            <h4>3. KAT CHALLENGE의 3대 운용 원칙</h4>
+            <div class="table-container">
+              <div class="custom-table" style="--cols: 3;">
+                <div class="cell header">Pillar</div><div class="cell header">정의</div><div class="cell header">실패 시 결과</div>
+                <div class="cell header">Preservation (보존)</div><div class="cell">신체 자원을 결승선까지 분배</div><div class="cell">중도 붕괴</div>
+                <div class="cell header">Adaptation (대응)</div><div class="cell">환경 변화 대응</div><div class="cell">부상 및 이탈</div>
+                <div class="cell header">Decision (판단)</div><div class="cell">데이터 기반 판단</div><div class="cell">통제력 상실</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- II. SYSTEM FAILURE -->
+      <div class="acc-item section-target" data-no="02" data-title="II. SYSTEM FAILURE">
+        <input type="checkbox" id="sec02" class="acc-input">
+        <label class="acc-head" for="sec02">
+          <span class="acc-no">02</span><div class="acc-title">II. SYSTEM FAILURE — 장거리 종주 실패 패턴 5</div><i class="acc-arrow"></i>
+        </label>
+        <div class="acc-body-wrap"><div class="acc-body-inner">
+          <div class="manual-content">
+            <p>여기에 II장 원문을 HTML 형식으로 붙여넣으세요.</p>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- III. KOREA-SPECIFIC FAILURE PATTERNS -->
+      <div class="acc-item section-target" data-no="03" data-title="III. KOREA-SPECIFIC FAILURE">
+        <input type="checkbox" id="sec03" class="acc-input">
+        <label class="acc-head" for="sec03">
+          <span class="acc-no">03</span><div class="acc-title">III. KOREA-SPECIFIC FAILURE PATTERNS</div><i class="acc-arrow"></i>
+        </label>
+        <div class="acc-body-wrap"><div class="acc-body-inner">
+          <div class="manual-content">
+            <p>여기에 III장 원문을 HTML 형식으로 붙여넣으세요.</p>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- IV. TACTICAL LOADOUT -->
+      <div class="acc-item section-target" data-no="04" data-title="IV. TACTICAL LOADOUT">
+        <input type="checkbox" id="sec04" class="acc-input">
+        <label class="acc-head" for="sec04">
+          <span class="acc-no">04</span><div class="acc-title">IV. TACTICAL LOADOUT — 장비 배치와 하중 운용</div><i class="acc-arrow"></i>
+        </label>
+        <div class="acc-body-wrap"><div class="acc-body-inner">
+          <div class="manual-content">
+            <p>여기에 IV장 원문을 HTML 형식으로 붙여넣으세요.</p>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- V. KINEMATIC TACTICS -->
+      <div class="acc-item section-target" data-no="05" data-title="V. KINEMATIC TACTICS">
+        <input type="checkbox" id="sec05" class="acc-input">
+        <label class="acc-head" for="sec05">
+          <span class="acc-no">05</span><div class="acc-title">V. KINEMATIC TACTICS — 보행 기술과 지형 대응</div><i class="acc-arrow"></i>
+        </label>
+        <div class="acc-body-wrap"><div class="acc-body-inner">
+          <div class="manual-content">
+            <p>여기에 V장 원문을 HTML 형식으로 붙여넣으세요.</p>
+          </div>
+        </div></div>
+      </div>
+
+    </div> <!-- // manualContainer -->
+  </div> <!-- // app-container -->
+
+  <!-- Top 버튼 -->
+  <button class="btn-top" id="btnTop">↑</button>
+
+  <script>
+    // 1. 프로그레스 바 & Sticky 헤더
+    const progressBar = document.getElementById('progressBar');
+    const stickyHeader = document.getElementById('stickyHeader');
+    const stickyNo = document.getElementById('stickyNo');
+    const stickyTitle = document.getElementById('stickyTitle');
+    const btnTop = document.getElementById('btnTop');
+    const sections = document.querySelectorAll('.section-target');
+
+    window.addEventListener('scroll', () => {
+      // 진행률 계산
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      progressBar.style.width = scrolled + '%';
+
+      // 150px 이상 스크롤 시 UI 노출
+      if (winScroll > 150) {
+        stickyHeader.classList.add('show');
+        btnTop.classList.add('show');
+      } else {
+        stickyHeader.classList.remove('show');
+        btnTop.classList.remove('show');
+      }
+
+      // 현재 보이는 섹션 감지 (Intersection Observer 대신 Scroll 위치 기반)
+      let currentSection = null;
+      sections.forEach(sec => {
+        const rect = sec.getBoundingClientRect();
+        // 화면 중앙 부근(top이 0~200px 사이)에 걸쳐있는 섹션을 현재 섹션으로 간주
+        if (rect.top <= 200 && rect.bottom >= 100) {
+          currentSection = sec;
+        }
+      });
+
+      if (currentSection) {
+        stickyNo.textContent = currentSection.getAttribute('data-no');
+        stickyTitle.textContent = currentSection.getAttribute('data-title');
+      }
+    });
+
+    // 2. 목차 칩 클릭 시 해당 섹션 열고 부드럽게 스크롤
+    window.openSection = function(id) {
+      const checkbox = document.getElementById(id);
+      if (checkbox) {
+        checkbox.checked = true; // 강제 열기
+        // 스크롤 이동 전 애니메이션(0.35s) 렌더링 대기
+        setTimeout(() => {
+          const container = checkbox.closest('.acc-item');
+          // 상단 sticky 메뉴에 안 가려지도록 offset 적용
+          const y = container.getBoundingClientRect().top + window.scrollY - 110;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 50);
+      }
+    };
+
+    // 3. 전체 펼침 / 접기
+    const inputs = document.querySelectorAll('.acc-input');
+    document.getElementById('btnExpandAll').addEventListener('click', () => {
+      inputs.forEach(input => input.checked = true);
+    });
+    document.getElementById('btnCollapseAll').addEventListener('click', () => {
+      inputs.forEach(input => input.checked = false);
+    });
+
+    // 4. 글자 크기 조절
+    let currentFontSize = 12; // 기본 12px
+    const root = document.documentElement;
+    document.getElementById('btnFontPlus').addEventListener('click', () => {
+      if (currentFontSize < 16) { 
+        currentFontSize += 0.5; 
+        root.style.setProperty('--body-size', currentFontSize + 'px'); 
+      }
+    });
+    document.getElementById('btnFontMinus').addEventListener('click', () => {
+      if (currentFontSize > 10.5) { 
+        currentFontSize -= 0.5; 
+        root.style.setProperty('--body-size', currentFontSize + 'px'); 
+      }
+    });
+
+    // 5. 실시간 검색 기능
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', (e) => {
+      const keyword = e.target.value.trim().toLowerCase();
+      if (!keyword) return;
+
+      sections.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        const checkbox = sec.querySelector('.acc-input');
+        if (text.includes(keyword)) {
+          checkbox.checked = true; // 검색어 포함된 섹션 열기
+        }
+      });
+    });
+
+    // 6. Back to Top
+    btnTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>
