@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>APEX PATHFINDER v3.5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0B1426;--text:#FFFFFF;--accent:#C6FF00;--red:#FF3D00;--cyan:#00E5FF;--amber:#FFB300;--border:rgba(198,255,0,0.18);--bdr2:rgba(198,255,0,0.09)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;background:var(--bg);color:var(--text);font-family:'Pretendard',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+.bg-atm{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 90% 55% at 50% 100%,rgba(198,255,0,0.06) 0%,transparent 55%),radial-gradient(ellipse 70% 70% at 50% 50%,#0D182E 0%,var(--bg) 80%)}
+.bg-grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");background-size:180px 180px}
+.tick{position:fixed;z-index:30;pointer-events:none}
+.tick::before,.tick::after{content:'';position:absolute;background:rgba(198,255,0,.4)}
+.tick.tl{top:18px;left:18px}.tick.tl::before{top:0;left:0;width:18px;height:1px}.tick.tl::after{top:0;left:0;width:1px;height:18px}
+.tick.tr{top:18px;right:18px}.tick.tr::before{top:0;right:0;width:18px;height:1px}.tick.tr::after{top:0;right:0;width:1px;height:18px}
+.tick.bl{bottom:18px;left:18px}.tick.bl::before{bottom:0;left:0;width:18px;height:1px}.tick.bl::after{bottom:0;left:0;width:1px;height:18px}
+.tick.br{bottom:18px;right:18px}.tick.br::before{bottom:0;right:0;width:18px;height:1px}.tick.br::after{bottom:0;right:0;width:1px;height:18px}
+.hud{position:fixed;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(198,255,0,.6);background:rgba(11,20,38,.55);backdrop-filter:blur(6px)}
+.hud-t{top:0;height:36px;border-bottom:1px solid rgba(198,255,0,.11)}
+.hud-b{bottom:0;height:34px;border-top:1px solid rgba(198,255,0,.11)}
+.live-sig{display:flex;align-items:center;gap:5px;color:var(--accent);text-shadow:0 0 8px rgba(198,255,0,.4)}
+.live-sig i{display:block;width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.12}}
+#pc-block{display:none;position:fixed;inset:0;z-index:9999;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:30px;text-align:center}
+.pc-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:40px;letter-spacing:10px;color:var(--accent);margin-bottom:4px}
+.pc-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:rgba(198,255,0,.45);margin-bottom:20px}
+.pc-box{background:rgba(11,20,38,.85);border:1px solid rgba(198,255,0,.18);padding:20px 24px;max-width:340px;margin-bottom:22px}
+.pc-msg{font-family:'Pretendard',sans-serif;font-size:13px;line-height:1.85;color:rgba(255,255,255,.65)}
+.pc-qr-wrap{background:rgba(255,255,255,.97);padding:12px;display:inline-block;margin-top:4px}
+.pc-hint{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(198,255,0,.45);margin-top:12px}
+.pc-url{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:rgba(0,229,255,.6);margin-top:8px;word-break:break-all}
+#boot-screen{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .5s ease}
+.boot-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:52px;letter-spacing:14px;color:var(--accent);text-shadow:0 0 40px rgba(198,255,0,.28);animation:bfi .5s ease .1s both}
+.boot-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:5px;color:rgba(198,255,0,.45);animation:bfi .4s ease .5s both}
+@keyframes bfi{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+.boot-bar{width:150px;height:1px;background:rgba(198,255,0,.12);animation:bfi .3s ease .75s both}
+.boot-fill{height:100%;width:0;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+#system-overlay{display:none;position:fixed;inset:0;z-index:180;flex-direction:column;justify-content:center;align-items:center;padding:24px;background:rgba(11,20,38,.97)}
+#overlay-text{font-family:'Share Tech Mono',monospace;text-align:center;word-break:keep-all;line-height:1.8;white-space:pre-wrap}
+.glitch-active{animation:glitch .3s 3}
+@keyframes glitch{0%{transform:translate(0,0);filter:hue-rotate(0deg)}25%{transform:translate(-8px,5px);filter:hue-rotate(90deg)}50%{transform:translate(8px,-5px);filter:hue-rotate(180deg)}75%{transform:translate(-4px,-8px);filter:hue-rotate(270deg)}100%{transform:translate(0,0);filter:hue-rotate(0deg)}}
+.blink-cursor{animation:cB .8s linear infinite}
+@keyframes cB{50%{opacity:0}}
+#login-screen{position:fixed;inset:0;z-index:150;display:none;flex-direction:column;justify-content:center;align-items:center;padding:40px 24px 80px;background:var(--bg)}
+.login-brand{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:44px;letter-spacing:12px;color:var(--accent);text-shadow:0 0 30px rgba(198,255,0,.25);margin-bottom:2px}
+.login-ver{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:rgba(198,255,0,.5);margin-bottom:4px}
+.login-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:rgba(198,255,0,.4);margin-bottom:28px;text-align:center}
+.login-div{width:120px;height:1px;background:linear-gradient(90deg,transparent,rgba(198,255,0,.35),transparent);margin-bottom:24px}
+.name-input{background:rgba(11,20,38,.95);border:1px solid rgba(198,255,0,.18);color:#fff;font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:2px;padding:14px 18px;width:100%;max-width:300px;text-align:center;outline:none;transition:border-color .25s,box-shadow .25s;margin-bottom:10px;display:block}
+.name-input:focus{border-color:rgba(198,255,0,.55);box-shadow:0 0 0 1px rgba(198,255,0,.12)}
+.name-input::placeholder{color:rgba(198,255,0,.22);font-size:10px;letter-spacing:1px}
+.login-btn{width:100%;max-width:300px;margin-top:14px;padding:15px;background:transparent;border:1px solid rgba(198,255,0,.35);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:5px;cursor:pointer;text-transform:uppercase;transition:all .25s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
+.login-btn::before{content:'';position:absolute;inset:0;background:rgba(198,255,0,.07);transform:translateX(-100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+.login-btn:hover::before{transform:translateX(0)}
+.login-btn:hover{border-color:rgba(198,255,0,.65);color:#fff}
+.login-btn:active{transform:scale(.98)}
+.login-btn:disabled{opacity:.4;cursor:not-allowed}
+.fail-warn{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--red);margin-top:10px;text-align:center;min-height:16px}
+#main-app{display:none;width:100%;flex-direction:column;align-items:center;padding-top:36px;padding-bottom:46px;position:relative;z-index:10}
+.app-header{width:100%;text-align:center;padding:12px 0 0;cursor:pointer;user-select:none}
+.app-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:23px;letter-spacing:7px;color:var(--text)}
+.app-ver{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:rgba(198,255,0,.45);margin-top:2px}
+.op-bar{border-top:1px solid rgba(198,255,0,.1);border-bottom:1px solid rgba(198,255,0,.1);width:100%;padding:6px 0;margin-top:8px;color:rgba(198,255,0,.75);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;text-align:center;background:rgba(11,20,38,.5)}
+.main-con{width:100%;max-width:440px;margin:0 auto;padding:12px 16px 18px;display:flex;flex-direction:column;align-items:center}
+.pts-banner{width:100%;background:rgba(11,20,38,.85);border:1px solid rgba(198,255,0,.22);display:flex;align-items:center;justify-content:space-between;padding:10px 16px;margin-bottom:10px}
+.pts-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(198,255,0,.55)}
+.pts-sub{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:rgba(198,255,0,.35)}
+.pts-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26px;color:var(--accent);text-shadow:0 0 14px rgba(198,255,0,.35);letter-spacing:1px}
+.live-panel{width:100%;background:rgba(11,20,38,.72);border:1px solid rgba(198,255,0,.14);display:flex;align-items:center;justify-content:space-between;padding:7px 14px;margin-bottom:10px}
+.live-panel-dot{display:block;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s infinite;flex-shrink:0}
+.live-panel-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(198,255,0,.6)}
+.live-panel-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:var(--accent);letter-spacing:1px}
+.live-panel-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(198,255,0,.35);letter-spacing:1px}
+.gps-weak-warn{width:100%;background:rgba(255,61,0,.1);border:1px solid rgba(255,61,0,.35);padding:8px 14px;margin-bottom:10px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--red);text-align:center;display:none;animation:gP 1s infinite}
+@keyframes gP{0%,100%{opacity:.6}50%{opacity:1}}
+.compass-block{width:100%;background:rgba(11,20,38,.72);border:1px solid var(--border);padding:22px 15px 18px;display:flex;flex-direction:column;align-items:center;margin-bottom:10px}
+.compass-wrap{position:relative;width:272px;height:272px;margin-bottom:14px}
+.c-outer-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(198,255,0,.28);box-shadow:0 0 20px rgba(198,255,0,.08),inset 0 0 20px rgba(198,255,0,.04);animation:oSpin 120s linear infinite;pointer-events:none}
+.c-outer-ring::before{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px dashed rgba(198,255,0,.14)}
+.c-mid-ring{position:absolute;inset:16px;border-radius:50%;border:1px solid rgba(198,255,0,.18);animation:oSpin 90s linear infinite reverse;pointer-events:none}
+@keyframes oSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.c-body{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(11,20,38,.97) 0%,rgba(11,20,38,.7) 55%,transparent 100%);border:2px solid rgba(198,255,0,.2);box-shadow:0 0 40px rgba(198,255,0,.08),inset 0 0 60px rgba(0,0,0,.65);overflow:hidden}
+.c-body::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,rgba(198,255,0,.08) 25deg,transparent 50deg);animation:rSweep 5s linear infinite}
+@keyframes rSweep{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.c-cross{position:absolute;inset:0;pointer-events:none}
+.c-cross::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;transform:translateX(-50%);background:linear-gradient(to bottom,rgba(198,255,0,.22) 0%,transparent 38%,transparent 62%,rgba(198,255,0,.22) 100%)}
+.c-cross::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;transform:translateY(-50%);background:linear-gradient(to right,rgba(198,255,0,.22) 0%,transparent 38%,transparent 62%,rgba(198,255,0,.22) 100%)}
+.c-face{position:absolute;inset:0;border-radius:50%;z-index:10}
+.c-face svg{width:100%;height:100%}
+.fwd-marker{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:15px solid var(--accent);filter:drop-shadow(0 0 8px var(--accent));z-index:25;pointer-events:none}
+.radar-sc{position:absolute;inset:30px;transform-origin:center center;z-index:20;display:none;pointer-events:none}
+.radar-dot{position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:13px;height:13px;background:var(--cyan);border-radius:50%;box-shadow:0 0 10px var(--cyan),0 0 22px rgba(0,229,255,.45),inset 0 0 5px #fff;border:1.5px solid #fff}
+.hdg-disp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(11,20,38,.94);padding:4px 12px;border:1px solid rgba(198,255,0,.22);display:flex;align-items:baseline;justify-content:center;z-index:35;box-shadow:0 4px 20px rgba(0,0,0,.8),inset 0 0 12px rgba(0,0,0,.6)}
+.hdg-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:32px;letter-spacing:2px;color:#fff;text-shadow:0 0 12px rgba(198,255,0,.35)}
+.hdg-unit{font-family:'Share Tech Mono',monospace;font-size:9px;margin-left:4px;color:var(--accent);letter-spacing:1px}
+.gps-badge{background:rgba(11,20,38,.9);border:1px solid rgba(198,255,0,.14);padding:5px 16px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:rgba(198,255,0,.28);transition:all .3s}
+.gps-badge.scanning{color:var(--amber);border-color:rgba(255,179,0,.45);text-shadow:0 0 8px rgba(255,179,0,.35);animation:gP 1.5s infinite}
+.gps-badge.locked{color:var(--accent);border-color:rgba(198,255,0,.45);text-shadow:0 0 8px rgba(198,255,0,.35)}
+.gps-badge.weak{color:var(--red);border-color:rgba(255,61,0,.45);text-shadow:0 0 8px rgba(255,61,0,.35);animation:gP 1s infinite}
+.acc-disp{margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1.5px;color:rgba(198,255,0,.5);display:flex;align-items:center;gap:8px}
+.acc-v{color:var(--accent);font-size:11px}
+.sec-card{width:100%;background:rgba(11,20,38,.72);border:1px solid rgba(198,255,0,.14);margin-bottom:10px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(198,255,0,.09);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(198,255,0,.55)}
+.lvl-inner{padding:12px 14px;display:flex;align-items:center;gap:18px}
+.bullseye{position:relative;width:52px;height:52px;flex-shrink:0;background:radial-gradient(circle,rgba(11,20,38,.85),rgba(11,20,38,.97));border:1.5px solid rgba(198,255,0,.18);border-radius:50%;box-shadow:inset 0 3px 10px rgba(0,0,0,.6);overflow:hidden}
+.b-cx{position:absolute;top:50%;left:0;width:100%;height:1px;background:rgba(198,255,0,.28)}
+.b-cy{position:absolute;top:0;left:50%;width:1px;height:100%;background:rgba(198,255,0,.28)}
+.b-bubble{position:absolute;top:50%;left:50%;width:12px;height:12px;background:var(--red);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 6px var(--red)}
+.lvl-status{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:2px;color:var(--red)}
+.dist-row{display:flex;border-bottom:1px solid rgba(198,255,0,.09)}
+.dist-cell{flex:1;padding:10px 6px;display:flex;flex-direction:column;align-items:center;border-right:1px solid rgba(198,255,0,.09)}
+.dist-cell:last-child{border-right:none}
+.dc-lbl{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;color:rgba(198,255,0,.5);text-transform:uppercase;margin-bottom:4px;text-align:center}
+.dc-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:#fff;text-align:center;letter-spacing:.5px}
+.dc-val.acc{color:var(--accent);text-shadow:0 0 10px rgba(198,255,0,.22)}
+.wx-body{padding:10px 14px}
+.wx-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.wx-row:last-child{margin-bottom:0}
+.wx-lbl{font-family:'Pretendard',sans-serif;font-size:10px;font-weight:500;color:rgba(255,255,255,.38)}
+.wx-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:#fff;display:flex;align-items:center;gap:5px}
+.wind-warn{color:var(--red)!important;animation:gP 1s infinite;text-shadow:0 0 8px rgba(255,61,0,.45)}
+.tac-btn{width:100%;padding:14px;background:rgba(11,20,38,.88);border:1px solid rgba(198,255,0,.25);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;letter-spacing:4px;cursor:pointer;margin-bottom:10px;transition:all .2s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden;text-align:left;padding-left:20px}
+.tac-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);box-shadow:0 0 12px rgba(198,255,0,.45)}
+.tac-btn:active{transform:scale(.99)}
+.tac-btn.active{border-color:rgba(198,255,0,.5);color:var(--accent);box-shadow:0 0 18px rgba(198,255,0,.07)}
+.tac-btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── ENGAGE 버튼 전용 오버라이드 ── */
+#engage-btn {
+  background: linear-gradient(135deg, #C6FF00 0%, #8BCB00 100%);
+  border: 2px solid #C6FF00;
+  color: #000 !important;
+  font-size: 20px;
+  letter-spacing: 5px;
+  padding: 22px 20px 30px;
+  text-align: center;
+  padding-left: 20px;
+  box-shadow: 0 0 0 3px rgba(198,255,0,.2), 0 0 35px rgba(198,255,0,.35), 0 6px 24px rgba(0,0,0,.55);
+  animation: engagePulse 1.8s ease-in-out infinite;
+}
+#engage-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.28) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: engageShine 2.4s ease-in-out infinite;
+  box-shadow: none;
+}
+#engage-btn::after {
+  content: '▶ 터치하여 시스템을 가동하십시오';
+  position: absolute;
+  bottom: 6px;
+  left: 0; right: 0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: rgba(0,0,0,.5);
+  text-align: center;
+}
+#engage-btn.active {
+  background: rgba(11,20,38,.88) !important;
+  border: 1px solid rgba(198,255,0,.3) !important;
+  color: rgba(198,255,0,.5) !important;
+  font-size: 13px;
+  letter-spacing: 3px;
+  padding: 12px 20px;
+  box-shadow: none !important;
+  animation: none !important;
+}
+#engage-btn.active::after { display: none; }
+#engage-btn.active::before {
+  background: var(--accent);
+  width: 3px;
+  height: auto;
+  inset: 0;
+  transform: none;
+  animation: none;
+}
+@keyframes engagePulse {
+  0%,100% { box-shadow: 0 0 0 3px rgba(198,255,0,.2), 0 0 35px rgba(198,255,0,.35), 0 6px 24px rgba(0,0,0,.55); }
+  50%      { box-shadow: 0 0 0 8px rgba(198,255,0,.07), 0 0 60px rgba(198,255,0,.55), 0 6px 24px rgba(0,0,0,.55); }
+}
+@keyframes engageShine {
+  0%  { transform: translateX(-100%); }
+  60% { transform: translateX(100%); }
+  100%{ transform: translateX(100%); }
+}
+#radar-btn{border-color:rgba(0,229,255,.22);color:rgba(0,229,255,.8);font-size:13px;margin-bottom:10px;display:none}
+#radar-btn::before{background:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.45)}
+#radar-btn.active{border-color:rgba(0,229,255,.52);color:var(--cyan)}
+#map-btn{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.75);font-size:13px;margin-bottom:10px;display:none}
+#map-btn::before{background:rgba(255,255,255,.6);box-shadow:0 0 10px rgba(255,255,255,.3)}
+#map-btn.used{border-color:rgba(255,179,0,.35);color:var(--amber)}
+.pathfinder-panel{width:100%;background:rgba(11,20,38,.72);border:1px solid rgba(198,255,0,.14);padding:9px 14px;margin-bottom:10px;display:none}
+.pf-row{display:flex;justify-content:space-between;align-items:center}
+.pf-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(198,255,0,.5)}
+.pf-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:var(--accent)}
+.pf-sub{font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(198,255,0,.35);margin-top:2px;text-align:right}
+#map-modal{position:fixed;inset:0;z-index:300;display:none;flex-direction:column;background:var(--bg)}
+.map-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(11,20,38,.95);border-bottom:1px solid rgba(198,255,0,.18);flex-shrink:0}
+.map-modal-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:3px;color:#fff}
+.map-modal-title span{color:var(--red);font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;margin-left:8px}
+.map-modal-close{background:none;border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;cursor:pointer;padding:6px 12px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;transition:all .2s}
+.map-modal-close:hover{border-color:var(--accent);color:var(--accent)}
+.map-modal-info{padding:8px 14px;background:rgba(11,20,38,.85);border-bottom:1px solid rgba(198,255,0,.09);display:flex;gap:16px;flex-shrink:0}
+.map-info-item{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:rgba(198,255,0,.5);display:flex;align-items:center;gap:5px}
+.map-info-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.map-body{flex:1;position:relative;min-height:0}
+#real-map{width:100%;height:100%}
+.map-hud-overlay{position:absolute;top:10px;right:10px;z-index:400;pointer-events:none}
+.map-bonus-badge{background:rgba(11,20,38,.92);border:1px solid rgba(198,255,0,.35);padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--accent);text-align:right}
+.map-usage-badge{background:rgba(255,61,0,.15);border:1px solid rgba(255,61,0,.35);padding:4px 10px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--red);margin-top:4px;text-align:right}
+.auth-btn{width:100%;padding:17px;background:rgba(11,20,38,.88);border:2px solid rgba(198,255,0,.3);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;letter-spacing:4px;cursor:pointer;margin-bottom:10px;transition:all .2s;position:relative;overflow:hidden;display:none}
+.auth-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);box-shadow:0 0 16px rgba(198,255,0,.6)}
+.auth-btn:active{transform:scale(.99)}
+.auth-btn.pulse{animation:aPulse .8s ease-in-out infinite}
+@keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(198,255,0,.3)}50%{box-shadow:0 0 0 10px rgba(198,255,0,0)}}
+.mi-panel{width:100%;padding:9px 14px;background:rgba(11,20,38,.72);border:1px solid rgba(198,255,0,.14);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.mi-item{display:flex;flex-direction:column;align-items:center}
+.mi-lbl{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1.5px;color:rgba(198,255,0,.4);margin-bottom:3px}
+.mi-val{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;color:#fff}
+.mi-val.acc{color:var(--accent);text-shadow:0 0 10px rgba(198,255,0,.25)}
+.course-tabs{width:100%;display:none;flex-direction:column;gap:8px;margin-bottom:14px}
+.course-tabs-label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;letter-spacing:2px;
+  color:var(--accent);text-align:center;
+  padding:8px 0 4px;
+  border-top:1px solid rgba(198,255,0,.22);
+  animation:blinkLabel 1.2s ease-in-out infinite;
+}
+@keyframes blinkLabel{0%,100%{opacity:1}50%{opacity:.35}}
+.c-tab{
+  width:100%;padding:16px 18px;
+  text-align:left;
+  background:rgba(11,20,38,.85);
+  border:1px solid rgba(198,255,0,.22);
+  border-left:4px solid rgba(198,255,0,.4);
+  color:rgba(255,255,255,.8);
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;font-size:18px;letter-spacing:2px;
+  cursor:pointer;
+  transition:all .22s cubic-bezier(.16,1,.3,1);
+  display:flex;align-items:center;justify-content:space-between;
+  border-right:1px solid rgba(198,255,0,.22);
+  position:relative;overflow:hidden;
+}
+.c-tab:hover{border-color:rgba(198,255,0,.55);border-left-color:var(--accent);color:#fff}
+.c-tab:active{transform:scale(.99)}
+.c-tab-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.c-tab .tab-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:rgba(198,255,0,.5);display:block;margin-top:0}
+.c-tab .tab-pts{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:rgba(255,179,0,.65)}
+.c-tab.active{
+  background:rgba(198,255,0,.10);
+  border-color:var(--accent);
+  border-left:4px solid var(--accent);
+  color:var(--accent);
+  box-shadow:0 0 20px rgba(198,255,0,.12), inset 0 0 20px rgba(198,255,0,.04);
+}
+.c-tab.active .tab-sub{color:rgba(198,255,0,.75)}
+.c-tab.active::after{
+  content:'✔ 선택됨';
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--accent);
+}
+.c-tab.active .c-tab-right{opacity:0}
+.acc-wrap{width:100%;margin-bottom:4px;border:1px solid rgba(198,255,0,.1)}
+.acc-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;background:rgba(11,20,38,.75);user-select:none;transition:background .2s}
+.acc-head:hover{background:rgba(11,20,38,.92)}
+.acc-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:2px;color:#fff;white-space:nowrap}
+.acc-title .acc-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:rgba(198,255,0,.5);margin-left:8px}
+.acc-arrow{font-size:10px;color:rgba(198,255,0,.55);transition:transform .3s;flex-shrink:0}
+.acc-arrow.open{transform:rotate(180deg)}
+.acc-body{display:none;border-top:1px solid rgba(198,255,0,.08)}
+.acc-body.open{display:block}
+.spot-list{list-style:none}
+.spot-item{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(198,255,0,.05)}
+.spot-item:last-child{border-bottom:none}
+.spot-name{font-family:'Pretendard',sans-serif;font-weight:500;font-size:11px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:8px}
+.spot-no{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(198,255,0,.35);white-space:nowrap}
+.s-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.12);flex-shrink:0}
+.s-dot.active{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:dB 1s infinite}
+.s-dot.cleared{background:var(--accent);box-shadow:0 0 7px var(--accent)}
+@keyframes dB{0%,100%{opacity:1}50%{opacity:.25}}
+.spot-st{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:rgba(255,255,255,.18);flex-shrink:0}
+.spot-st.sa{color:var(--amber)}
+.spot-st.sc{color:var(--accent)}
+.spot-pts{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(198,255,0,.35);margin-left:4px;white-space:nowrap}
+#cert-wrap{display:none;width:100%;max-width:440px;flex-direction:column;align-items:center;padding:16px 16px 20px;margin:0 auto}
+#cert-card{width:100%;background:#060E1C;background-image:linear-gradient(rgba(198,255,0,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(198,255,0,.025) 1px,transparent 1px);background-size:22px 22px;border:1px solid rgba(198,255,0,.22);padding:26px 20px 30px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden}
+#cert-card::before,#cert-card::after{content:'';position:absolute;width:22px;height:22px;border:2px solid var(--accent);pointer-events:none}
+#cert-card::before{top:12px;left:12px;border-right:none;border-bottom:none}
+#cert-card::after{bottom:12px;right:12px;border-left:none;border-top:none}
+.cert-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26px;letter-spacing:8px;color:#fff;margin-bottom:1px}
+.cert-logo span{color:var(--accent)}
+.cert-ver{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:3px;color:rgba(198,255,0,.4);margin-bottom:2px}
+.cert-sub{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:4px;color:rgba(198,255,0,.4);margin-bottom:16px;border-bottom:1px solid rgba(198,255,0,.1);padding-bottom:10px;width:100%}
+.cert-badge{width:62px;height:62px;background:rgba(198,255,0,.07);border:1.5px solid rgba(198,255,0,.38);border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:26px;color:var(--accent);margin-bottom:10px;box-shadow:0 0 28px rgba(198,255,0,.12)}
+.cert-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;letter-spacing:4px;color:#fff;margin-bottom:14px;text-shadow:0 0 20px rgba(198,255,0,.25)}
+.cert-info{width:100%;display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.cert-row{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.28);padding:9px 12px;border-left:2px solid var(--accent)}
+.cert-row span:first-child{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;color:rgba(198,255,0,.5)}
+.cert-name-v{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff}
+.cert-num-v{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:var(--accent)}
+.cert-time-v{font-family:'Share Tech Mono',monospace;font-size:10px;color:#fff}
+.cert-course-v{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan)}
+.cert-row.pf-row-cert{border-left-color:var(--amber)}
+.cert-pf-v{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:var(--amber)}
+.cert-pf-zero{color:rgba(255,255,255,.3)}
+.cert-grid-lbl{width:100%;text-align:left;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(198,255,0,.5);border-bottom:1px solid rgba(198,255,0,.09);padding-bottom:5px;margin-bottom:7px}
+.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%;margin-bottom:10px}
+.cert-item{display:flex;align-items:center;gap:5px;background:rgba(11,20,38,.65);padding:5px 7px;border:1px solid rgba(198,255,0,.07);font-family:'Pretendard',sans-serif;font-size:9px;color:rgba(255,255,255,.6)}
+.cert-ck{font-size:9px;flex-shrink:0}
+.cert-pts-box{width:100%;background:rgba(198,255,0,.06);border:1px solid rgba(198,255,0,.18);padding:11px 16px;display:flex;justify-content:space-between;align-items:center}
+.cert-pts-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(198,255,0,.55)}
+.cert-pts-v{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:var(--accent)}
+.cert-seal{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1.5px;color:rgba(198,255,0,.25);margin-top:12px;border-top:1px solid rgba(198,255,0,.08);padding-top:10px;width:100%;text-align:center}
+.dl-btn{width:100%;padding:15px;background:var(--accent);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:4px;border:none;cursor:pointer;margin-top:12px;box-shadow:0 4px 20px rgba(198,255,0,.22);transition:box-shadow .25s}
+.dl-btn:hover{box-shadow:0 4px 30px rgba(198,255,0,.38)}
+.app-footer{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(198,255,0,.18);text-align:center;padding:18px 0 6px;cursor:pointer;user-select:none}
+</style>
+</head>
+<body>
+<div class="bg-atm"></div>
+<div class="bg-grain"></div>
+<div class="tick tl"></div><div class="tick tr"></div><div class="tick bl"></div><div class="tick br"></div>
+<div class="hud hud-t"><span>APEX PATHFINDER v3.5 · 2026 GOSEONG</span><div class="live-sig"><i></i><span id="hud-live-cnt">LIVE 500</span></div></div>
+<div class="hud hud-b"><span>GOAT-2026 · APEX SUMMIT</span><span id="hud-clock">--:--:--</span><span>GPS NAV</span></div>
+
+<div id="pc-block">
+  <div class="pc-logo">APEX</div>
+  <div class="pc-sub">PATHFINDER v3.5 · GOAT GOSEONG</div>
+  <div class="pc-box"><div class="pc-msg">⚠ 이 시스템은 GPS · 나침반 센서가 탑재된 스마트폰 전용입니다. PC / 노트북에서는 센서를 인식할 수 없어 자동 차단되었습니다. 아래 QR 코드를 스마트폰 카메라로 스캔하면 즉시 모바일로 접속됩니다.</div></div>
+  <div class="pc-qr-wrap"><canvas id="pc-qr-canvas" width="160" height="160"></canvas></div>
+  <div class="pc-hint">▲ 스마트폰 카메라로 QR 코드를 스캔하세요</div>
+  <div class="pc-url" id="pc-url-txt"></div>
+</div>
+
+<div id="boot-screen">
+  <div class="boot-logo">APEX</div>
+  <div class="boot-sub">PATHFINDER v3.5 · SYSTEM INIT</div>
+  <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+</div>
+
+<div id="system-overlay"><div id="overlay-text"></div></div>
+
+<div id="login-screen">
+  <div class="login-brand">APEX</div>
+  <div class="login-ver">PATHFINDER v3.5</div>
+  <div class="login-sub">TACTICAL NAVIGATOR · GOAT GOSEONG</div>
+  <div class="login-div"></div>
+  <input type="text"     id="p-name" class="name-input" placeholder="TREKKER 성명" autocomplete="off">
+  <input type="password" id="p-key"  class="name-input" placeholder="ACCESS KEY"      autocomplete="off">
+  <div class="fail-warn" id="fail-warn"></div>
+  <button class="login-btn" id="btn-login">SYSTEM START (시스템 접속)</button>
+</div>
+
+<div id="map-modal">
+  <div class="map-modal-hdr">
+    <div><div class="map-modal-title">🗺️ TACTICAL MAP<span id="map-modal-subtitle">독도법 마스터 시스템 작동 중</span></div></div>
+    <button class="map-modal-close" id="map-close-btn">✕ 닫기</button>
+  </div>
+  <div class="map-modal-info">
+    <div class="map-info-item"><div class="map-info-dot" style="background:var(--cyan)"></div><span>내 현재 위치</span></div>
+    <div class="map-info-item"><div class="map-info-dot" style="background:var(--red)"></div><span>다음 목표 거점</span></div>
+    <div class="map-info-item"><div class="map-info-dot" style="background:var(--accent)"></div><span id="map-start-label">선택 코스 출발지</span></div>
+  </div>
+  <div class="map-body">
+    <div id="real-map"></div>
+    <div class="map-hud-overlay">
+      <div class="map-bonus-badge">독도법 보너스<br><span id="map-bonus-disp" style="font-size:14px;font-family:'Barlow Condensed',sans-serif;font-weight:800">1,000 P</span></div>
+      <div class="map-usage-badge">열람 <span id="map-usage-disp">0</span>회 · -<span id="map-penalty-disp">0</span>P</div>
+    </div>
+  </div>
+</div>
+
+<div id="main-app">
+  <div class="app-header" id="hdr">
+    <div class="app-title">APEX PATHFINDER</div>
+    <div class="app-ver">v3.5 · GOAT GOSEONG</div>
+    <div class="op-bar">TREKKER : <span id="disp-name"></span> &nbsp;|&nbsp; START : <span id="start-name">코스 선택 대기</span></div>
+  </div>
+
+  <div class="main-con" id="tracking-ui">
+    <div class="pts-banner">
+      <div><div class="pts-label">ROUTE POINTS</div><div class="pts-sub">체크포인트 운영 데이터</div></div>
+      <div style="text-align:right"><div class="pts-val"><span id="pts-disp">0</span> P</div><div class="pts-sub" id="course-banner-lbl">코스 미선택</div></div>
+    </div>
+    <div class="live-panel">
+      <span class="live-panel-dot"></span>
+      <span class="live-panel-lbl">LIVE TREKKERS</span>
+      <div style="text-align:right"><div class="live-panel-val"><span id="live-count-panel">500</span></div><div class="live-panel-sub">LIVE 트레커</div></div>
+    </div>
+    <div class="gps-weak-warn" id="gps-weak-warn">⚠ GPS 신호 미약 — 야외 이동 후 대기하십시오 (ACC &gt; 50m)</div>
+    <div class="compass-block">
+      <div class="compass-wrap">
+        <div class="c-outer-ring"></div>
+        <div class="c-mid-ring"></div>
+        <div class="c-body">
+          <div class="c-face" id="c-face">
+            <svg viewBox="0 0 220 220">
+              <g id="cTicks"></g>
+              <text x="110" y="22" text-anchor="middle" fill="#FF3D00" font-family="Orbitron,monospace" font-size="14" font-weight="900">N</text>
+              <text x="205" y="115" text-anchor="middle" fill="#C6FF00" font-family="Orbitron,monospace" font-size="11" font-weight="700">E</text>
+              <text x="110" y="213" text-anchor="middle" fill="#C6FF00" font-family="Orbitron,monospace" font-size="11" font-weight="700">S</text>
+              <text x="15"  y="115" text-anchor="middle" fill="#C6FF00" font-family="Orbitron,monospace" font-size="11" font-weight="700">W</text>
+              <text x="168" y="50"  text-anchor="middle" fill="rgba(198,255,0,.40)" font-family="Share Tech Mono,monospace" font-size="7">NE</text>
+              <text x="168" y="180" text-anchor="middle" fill="rgba(198,255,0,.40)" font-family="Share Tech Mono,monospace" font-size="7">SE</text>
+              <text x="52"  y="180" text-anchor="middle" fill="rgba(198,255,0,.40)" font-family="Share Tech Mono,monospace" font-size="7">SW</text>
+              <text x="52"  y="50"  text-anchor="middle" fill="rgba(198,255,0,.40)" font-family="Share Tech Mono,monospace" font-size="7">NW</text>
+              <circle cx="110" cy="110" r="44" fill="none" stroke="rgba(198,255,0,.07)" stroke-width=".7"/>
+              <circle cx="110" cy="110" r="27" fill="none" stroke="rgba(198,255,0,.05)" stroke-width=".7"/>
+              <polygon points="110,20 106,98 110,90 114,98" fill="#FF3D00" opacity=".92"/>
+              <polygon points="110,20 108,90 110,86 112,90" fill="#FF6F4A" opacity=".70"/>
+              <polygon points="110,200 106,122 110,130 114,122" fill="rgba(198,255,0,.22)" opacity=".80"/>
+            </svg>
+          </div>
+          <div class="c-cross"></div>
+        </div>
+        <div class="radar-sc" id="radar-sc"><div class="radar-dot"></div></div>
+        <div class="fwd-marker"></div>
+        <div class="hdg-disp"><span class="hdg-val" id="hdg-val">---</span><span class="hdg-unit">°DEG</span></div>
+      </div>
+      <div id="gps-badge" class="gps-badge">GPS OFFLINE</div>
+      <div class="acc-disp">ACC. <span class="acc-v" id="acc-v">---</span> m &nbsp;|&nbsp; SIGNAL: <span class="acc-v" id="sig-v">--</span></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-head"><span>INCLINOMETER (정밀 수평계)</span><span id="lvl-aligned" style="color:rgba(198,255,0,.4)">TILT</span></div>
+      <div class="lvl-inner">
+        <div class="bullseye"><div class="b-cx"></div><div class="b-cy"></div><div class="b-bubble" id="bubble"></div></div>
+        <div class="lvl-status" id="lvl-txt">TILT WARNING</div>
+      </div>
+    </div>
+    <div class="sec-card">
+      <div class="dist-row">
+        <div class="dist-cell"><div class="dc-lbl">TARGET (남은 거리)</div><div class="dc-val acc" id="dist-tgt">대기 중</div></div>
+        <div class="dist-cell"><div class="dc-lbl">TOTAL (총 이동거리)</div><div class="dc-val" id="dist-tot">0 m</div></div>
+        <div class="dist-cell"><div class="dc-lbl">ALTITUDE (고도)</div><div class="dc-val" id="alt-v">N/A</div></div>
+      </div>
+      <div class="sec-head"><span>METAR DATA (기상/풍향)</span><span id="wx-time"></span></div>
+      <div class="wx-body">
+        <div class="wx-row"><span class="wx-lbl">CONDITIONS</span><span class="wx-val" id="wx-cond">☀️ 맑음</span></div>
+        <div class="wx-row"><span class="wx-lbl">WIND</span><span class="wx-val"><span id="wind-spd">-- m/s</span><span id="wind-arr" style="color:var(--cyan);display:inline-block">➤</span></span></div>
+        <div class="wx-row"><span class="wx-lbl">FEELS LIKE</span><span class="wx-val" id="wx-temp">-- °C</span></div>
+      </div>
+    </div>
+    <button class="tac-btn" id="engage-btn">⚡ SYSTEM ENGAGE (가동)</button>
+    <div class="course-tabs" id="course-tabs">
+  <div class="course-tabs-label">▼ 참여할 코스를 선택하십시오</div>
+  <div class="c-tab" data-course="market">
+    <span>GOAT GOSEONG 100K</span>
+    <div class="c-tab-right">
+      <span class="tab-sub">4 DAYS · 12 CP</span>
+      <span class="tab-pts">2026.10.02—10.05</span>
+    </div>
+  </div>
+  <div class="c-tab" data-course="nopo">
+    <span>GOAT GOSEONG 75K</span>
+    <div class="c-tab-right">
+      <span class="tab-sub">3 DAYS · 9 CP</span>
+      <span class="tab-pts">2026.10.03—10.05</span>
+    </div>
+  </div>
+  <div class="c-tab" data-course="gyeong">
+    <span>GOAT GOSEONG 35K</span>
+    <div class="c-tab-right">
+      <span class="tab-sub">2 DAYS · 6 CP</span>
+      <span class="tab-pts">2026.10.04—10.05</span>
+    </div>
+  </div>
+</div>
+    <button class="tac-btn" id="radar-btn">📡 LOCAL RADAR : OFF</button>
+    <button class="tac-btn" id="map-btn">🗺️ TACTICAL MAP — 상황 지도 열기</button>
+    <div class="pathfinder-panel" id="pf-panel">
+      <div class="pf-row">
+        <span class="pf-lbl">🧭 독도법 마스터 보너스</span>
+        <div style="text-align:right"><div class="pf-val"><span id="pf-bonus-val">1,000</span> P</div></div>
+      </div>
+      <div class="pf-sub">지도 열람 <span id="pf-usage-val">0</span>회 · 열람 1회당 -200P · 0회 완주 시 전액 지급</div>
+    </div>
+    <button class="auth-btn pulse" id="auth-btn">🎯 체크포인트 인증 &amp; 포인트 적립</button>
+    <div class="mi-panel">
+      <div class="mi-item"><div class="mi-lbl">COURSE</div><div class="mi-val" id="mi-course">미선택</div></div>
+      <div class="mi-item"><div class="mi-lbl">PROGRESS</div><div class="mi-val acc" id="mi-prog">0 / --</div></div>
+      <div class="mi-item"><div class="mi-lbl">POINTS</div><div class="mi-val acc" id="mi-pts">0 P</div></div>
+      <div class="mi-item"><div class="mi-lbl">STATUS</div><div class="mi-val" id="mi-stat" style="color:var(--amber)">STANDBY</div></div>
+    </div>
+    <div class="acc-wrap">
+      <div class="acc-head" onclick="toggleAcc('heritage')">
+        <div class="acc-title">TRAIL &amp; FOREST<span class="acc-sub">산길·숲길</span></div>
+        <div class="acc-arrow" id="arr-heritage">▼</div>
+      </div>
+      <div class="acc-body" id="body-heritage"><ul class="spot-list" id="list-heritage"></ul></div>
+    </div>
+    <div class="acc-wrap">
+      <div class="acc-head" onclick="toggleAcc('tourist')">
+        <div class="acc-title">COAST &amp; LAKE<span class="acc-sub">해안·호수</span></div>
+        <div class="acc-arrow" id="arr-tourist">▼</div>
+      </div>
+      <div class="acc-body" id="body-tourist"><ul class="spot-list" id="list-tourist"></ul></div>
+    </div>
+    <div class="acc-wrap">
+      <div class="acc-head" onclick="toggleAcc('dining')">
+        <div class="acc-title">VILLAGE &amp; FINISH<span class="acc-sub">마을·피니시</span></div>
+        <div class="acc-arrow" id="arr-dining">▼</div>
+      </div>
+      <div class="acc-body" id="body-dining"><ul class="spot-list" id="list-dining"></ul></div>
+    </div>
+  </div>
+
+  <div id="cert-wrap">
+    <div id="cert-card">
+      <div class="cert-logo">APEX <span>SUMMIT</span></div>
+      <div class="cert-ver">PATHFINDER v3.5</div>
+      <div class="cert-sub">2026 APEX SUMMIT · GOAT GOSEONG</div>
+      <div class="cert-badge" id="cert-badge-icon">✔</div>
+      <div class="cert-title" id="cert-title-txt">ROUTE ACCOMPLISHED</div>
+      <div class="cert-info">
+        <div class="cert-row"><span>TREKKER</span><span class="cert-name-v" id="cert-name"></span></div>
+        <div class="cert-row"><span>COURSE</span><span class="cert-course-v" id="cert-course"></span></div>
+        <div class="cert-row"><span>TOTAL DISTANCE</span><span class="cert-num-v" id="cert-dist"></span></div>
+        <div class="cert-row"><span>CLEAR TIME</span><span class="cert-time-v" id="cert-time"></span></div>
+        <div class="cert-row pf-row-cert">
+          <span>🧭 독도법 보너스 (지도열람 <span id="cert-map-usage">0</span>회)</span>
+          <span class="cert-pf-v" id="cert-pf-bonus">+1,000 P</span>
+        </div>
+      </div>
+      <div class="cert-grid-lbl" id="cert-grid-lbl">-- CHECKPOINTS CLEARED</div>
+      <div class="cert-grid" id="cert-grid"></div>
+      <div class="cert-pts-box"><span class="cert-pts-lbl">TOTAL POINTS EARNED</span><span class="cert-pts-v"><span id="cert-pts">0</span> P</span></div>
+      <div class="cert-seal">VERIFIED BY APEX SUMMIT · www.walkapex.com · 2026 GOAT GOSEONG</div>
+    </div>
+    <button class="dl-btn" id="btn-dl">📷 디지털 인증서 갤러리 저장</button>
+  </div>
+
+  <div class="app-footer" id="footer-reset">© 2026 APEX SUMMIT · www.walkapex.com · ALL RIGHTS RESERVED.</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   APEX PATHFINDER v3.5 — 2026 GOAT GOSEONG
+   수정: Supabase 정상 연결 / 센서 분기 / 전체 버그 수정
+═══════════════════════════════════════════════════ */
+
+/* ── 상수 ── */
+var SUPABASE_URL = 'https://rmbicpzmisajoysrtljg.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_GU7bw082s_SIAYy1HprF2g_yPwQhILa';
+var CORRECT_PASS = '202610';
+var START_LAT    = 38.262;
+var START_LON    = 128.470;
+var MAP_BONUS_MAX       = 1000;
+var MAP_PENALTY_PER_USE = 200;
+
+/* ── PC 감지 + QR ── */
+(function(){
+  var isMob = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if(isMob) return;
+  document.getElementById('pc-block').style.display = 'flex';
+  var url = window.location.href;
+  document.getElementById('pc-url-txt').textContent = url;
+  var canvas = document.getElementById('pc-qr-canvas');
+  if(typeof QRCode !== 'undefined'){
+    QRCode.toCanvas(canvas, url, {width:160, margin:1, color:{dark:'#000000',light:'#f8f8f8'}}, function(err){
+      if(err) canvas.getContext('2d').fillText('QR 오류', 10, 80);
+    });
+  }
+})();
+
+/* ── SVG 나침반 눈금 ── */
+(function(){
+  var tg = document.getElementById('cTicks');
+  if(!tg) return;
+  for(var i=0; i<360; i+=5){
+    var rad=(i-90)*Math.PI/180, cx=110, cy=110, r=100;
+    var isMaj=(i%30===0), isMid=(i%10===0&&!isMaj);
+    var len=isMaj?12:isMid?7:4;
+    var ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1', cx+(r-len)*Math.cos(rad));
+    ln.setAttribute('y1', cy+(r-len)*Math.sin(rad));
+    ln.setAttribute('x2', cx+r*Math.cos(rad));
+    ln.setAttribute('y2', cy+r*Math.sin(rad));
+    ln.setAttribute('stroke', isMaj?'rgba(198,255,0,.75)':isMid?'rgba(198,255,0,.32)':'rgba(198,255,0,.11)');
+    ln.setAttribute('stroke-width', isMaj?'1.5':'1');
+    tg.appendChild(ln);
+  }
+})();
+
+/* ── HUD 시계 ── */
+(function tick(){
+  var d=new Date(), el=document.getElementById('hud-clock');
+  if(el) el.textContent =
+    String(d.getHours()).padStart(2,'0')+':'+
+    String(d.getMinutes()).padStart(2,'0')+':'+
+    String(d.getSeconds()).padStart(2,'0')+' KST';
+  setTimeout(tick, 1000);
+})();
+
+/* ── Supabase ── */
+var sbClient = null;
+function initSupabase(){
+  try{
+    if(typeof window.supabase !== 'undefined')
+      sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }catch(e){ console.warn('Supabase init:', e); }
+}
+
+var liveBase = 500;
+function startLiveCounter(){
+  updateLiveUI(500);
+}
+function fetchLiveCount(){
+  updateLiveUI(500);
+}
+function updateLiveUI(n){
+  var e1=document.getElementById('live-count-panel');
+  var e2=document.getElementById('hud-live-cnt');
+  if(e1) e1.textContent = n+'명';
+  if(e2) e2.textContent = 'LIVE ' + n;
+}
+function registerSession(name){
+  if(!sbClient) return;
+  sbClient.from('trail_participants')
+    .insert([{session_id:'GOAT2026_'+Date.now(), page:'2026-goat-goseong', name:name}])
+    .then(function(){}).catch(function(){});
+}
+
+/* ── IndexedDB ── */
+var idb = null;
+var IDB_NAME='apex_goat_goseong_pf_v35', IDB_VER=2, IDB_LOC='location_logs', IDB_SESS='session_store';
+function openIDB(cb){
+  if(!window.indexedDB){ cb(); return; }
+  var req = indexedDB.open(IDB_NAME, IDB_VER);
+  req.onupgradeneeded = function(e){
+    var db = e.target.result;
+    if(!db.objectStoreNames.contains(IDB_LOC))  db.createObjectStore(IDB_LOC,  {keyPath:'id', autoIncrement:true});
+    if(!db.objectStoreNames.contains(IDB_SESS)) db.createObjectStore(IDB_SESS, {keyPath:'k'});
+  };
+  req.onsuccess = function(e){ idb = e.target.result; cb(); };
+  req.onerror   = function(){ cb(); };
+}
+function idbLogLoc(lat, lon){
+  if(!idb) return;
+  try{
+    var tx = idb.transaction(IDB_LOC, 'readwrite');
+    tx.objectStore(IDB_LOC).add({lat:lat, lon:lon, ts:new Date().toISOString()});
+  }catch(e){}
+}
+function idbSave(k, v){
+  if(!idb) return;
+  try{
+    var tx = idb.transaction(IDB_SESS, 'readwrite');
+    tx.objectStore(IDB_SESS).put({k:k, v:v});
+  }catch(e){}
+}
+function idbLoad(k, cb){
+  if(!idb){ cb(null); return; }
+  try{
+    var req = idb.transaction(IDB_SESS,'readonly').objectStore(IDB_SESS).get(k);
+    req.onsuccess = function(e){ cb(e.target.result ? e.target.result.v : null); };
+    req.onerror   = function(){ cb(null); };
+  }catch(e){ cb(null); }
+}
+function syncToSupabase(){
+  if(!idb || !sbClient || !navigator.onLine) return;
+  try{
+    var req = idb.transaction(IDB_LOC,'readwrite').objectStore(IDB_LOC).getAll();
+    req.onsuccess = function(e){
+      var logs = e.target.result;
+      if(!logs || logs.length===0) return;
+      sbClient.from('trail_participants')
+        .insert(logs.map(function(l){
+          return {session_id:'SYNC_'+l.ts, page:'2026-goat-goseong', lat:l.lat, lon:l.lon};
+        }))
+        .then(function(r){
+          if(!r.error){
+            idb.transaction(IDB_LOC,'readwrite').objectStore(IDB_LOC).clear();
+            console.log('[SYNC]', logs.length, '건 동기화');
+          }
+        }).catch(function(){});
+    };
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') syncToSupabase(); });
+window.addEventListener('focus', syncToSupabase);
+
+/* ── STATE ── */
+var ST = {name:null, courseKey:null, cpIndex:0, totalDist:0, totalPts:0, cleared:[], lastLat:null, lastLon:null, startTime:null, mapUsage:0};
+var curLat=null, curLon=null, curTgtBrg=null;
+function saveState(){ idbSave('st', JSON.stringify(ST)); }
+function loadState(cb){
+  idbLoad('st', function(raw){
+    if(raw){ try{ Object.assign(ST, JSON.parse(raw)); }catch(e){} }
+    cb();
+  });
+}
+
+/* ── SENSOR STATE ── */
+var isTracking=false, isRadar=false;
+var rawHdg=0, smoothHdg=0, LERP_ALPHA=0.08;
+var rawBeta=0, rawGamma=0, smBeta=0, smGamma=0, LERP_LVL=0.12;
+var wxLast=0, failCnt=0, lockUntil=0;
+var oriHandled=false;
+
+/* ── 독도법 보너스 ── */
+function calcPathfinderBonus(){
+  return Math.max(0, MAP_BONUS_MAX - ST.mapUsage * MAP_PENALTY_PER_USE);
+}
+function updatePfPanel(){
+  var bonus = calcPathfinderBonus();
+  var pfEl=document.getElementById('pf-bonus-val');
+  var puEl=document.getElementById('pf-usage-val');
+  if(pfEl) pfEl.textContent = bonus.toLocaleString();
+  if(puEl) puEl.textContent = ST.mapUsage;
+  var mapBtn = document.getElementById('map-btn');
+  if(mapBtn){
+    if(ST.mapUsage===0){
+      mapBtn.textContent = '🗺️ TACTICAL MAP — 상황 지도 열기';
+      mapBtn.classList.remove('used');
+    }else{
+      mapBtn.textContent = '🗺️ TACTICAL MAP — 열람 '+ST.mapUsage+'회 (보너스 '+bonus+'P)';
+      mapBtn.classList.add('used');
+    }
+  }
+  var mbEl=document.getElementById('map-bonus-disp');
+  var muEl=document.getElementById('map-usage-disp');
+  var mpEl=document.getElementById('map-penalty-disp');
+  if(mbEl) mbEl.textContent = bonus.toLocaleString()+' P';
+  if(muEl) muEl.textContent = ST.mapUsage;
+  if(mpEl) mpEl.textContent = (ST.mapUsage*MAP_PENALTY_PER_USE).toLocaleString();
+}
+
+/* ── LEAFLET ── */
+var leafMap=null, leafUserMarker=null, leafTargetMarker=null, leafStartMarker=null, leafGuideLine=null;
+function makeCircleIcon(color, size, label){
+  var html='<div style="width:'+size+'px;height:'+size+'px;background:'+color+';border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px '+color+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#000;">'+label+'</div>';
+  return L.divIcon({html:html, className:'', iconAnchor:[size/2, size/2]});
+}
+function openTacticalMap(){
+  if(!isTracking){ alert('먼저 SYSTEM ENGAGE를 눌러 시스템을 가동하십시오.'); return; }
+  if(curLat===null){ alert('GPS 신호를 먼저 확보하십시오.\n야외로 이동 후 잠시 대기하십시오.'); return; }
+  ST.mapUsage++;
+  saveState();
+  updatePfPanel();
+  if(navigator.vibrate) navigator.vibrate([50,30,50]);
+  document.getElementById('map-modal').style.display = 'flex';
+  var tgtLat=null, tgtLon=null, tgtName='';
+  var startLat=START_LAT, startLon=START_LON, startName='선택 코스 출발지';
+  if(ST.courseKey && COURSES[ST.courseKey]){
+    var wps = COURSES[ST.courseKey].waypoints;
+    if(wps.length){
+      startLat=wps[0].lat; startLon=wps[0].lon; startName=wps[0].name;
+    }
+    if(ST.cpIndex < wps.length){
+      tgtLat = wps[ST.cpIndex].lat;
+      tgtLon = wps[ST.cpIndex].lon;
+      tgtName = wps[ST.cpIndex].spot+' '+wps[ST.cpIndex].name;
+    }
+  }
+  var subEl = document.getElementById('map-modal-subtitle');
+  if(subEl) subEl.textContent = '열람 '+ST.mapUsage+'회 · 남은 보너스 '+calcPathfinderBonus()+'P';
+  if(!leafMap){
+    leafMap = L.map('real-map', {zoomControl:true, attributionControl:true}).setView([curLat,curLon], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom:19
+    }).addTo(leafMap);
+    leafStartMarker = L.marker([startLat,startLon], {icon:makeCircleIcon('#C6FF00',22,'S')})
+      .addTo(leafMap).bindPopup('<b>🏁 출발지</b><br>'+startName);
+    leafUserMarker = L.marker([curLat,curLon], {icon:makeCircleIcon('#00E5FF',20,'ME')})
+      .addTo(leafMap).bindPopup('<b>📍 현재 위치</b><br>'+ST.name);
+    if(tgtLat!==null){
+      leafTargetMarker = L.marker([tgtLat,tgtLon], {icon:makeCircleIcon('#FF3D00',22,'T')})
+        .addTo(leafMap).bindPopup('<b>🎯 다음 목표</b><br>'+tgtName);
+      leafGuideLine=L.polyline([[curLat,curLon],[tgtLat,tgtLon]], {color:'#C6FF00',weight:1.5,dashArray:'6 4',opacity:.6}).addTo(leafMap);
+    }
+  }else{
+    leafMap.setView([curLat,curLon], 16);
+    if(leafUserMarker) leafUserMarker.setLatLng([curLat,curLon]);
+    if(leafStartMarker) leafStartMarker.setLatLng([startLat,startLon]).bindPopup('<b>🏁 출발지</b><br>'+startName);
+    if(tgtLat!==null){
+      if(leafTargetMarker) leafTargetMarker.setLatLng([tgtLat,tgtLon]).bindPopup('<b>🎯 다음 목표</b><br>'+tgtName);
+      else leafTargetMarker=L.marker([tgtLat,tgtLon], {icon:makeCircleIcon('#FF3D00',22,'T')}).addTo(leafMap).bindPopup('<b>🎯 다음 목표</b><br>'+tgtName);
+      if(leafGuideLine) leafGuideLine.setLatLngs([[curLat,curLon],[tgtLat,tgtLon]]);
+      else leafGuideLine=L.polyline([[curLat,curLon],[tgtLat,tgtLon]], {color:'#C6FF00',weight:1.5,dashArray:'6 4',opacity:.6}).addTo(leafMap);
+    }
+    setTimeout(function(){ leafMap.invalidateSize(); }, 120);
+  }
+  var startLabel=document.getElementById('map-start-label');
+  if(startLabel) startLabel.textContent='출발지 ('+startName+')';
+}
+function closeTacticalMap(){
+  document.getElementById('map-modal').style.display = 'none';
+  if(leafMap) setTimeout(function(){ leafMap.invalidateSize(); }, 120);
+}
+document.getElementById('map-close-btn').addEventListener('click', closeTacticalMap);
+document.getElementById('map-btn').addEventListener('click', openTacticalMap);
+
+/* ── BOOT ── */
+window.addEventListener('DOMContentLoaded', function(){
+  var isMob = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if(!isMob) return;
+  initSupabase();
+  var fill = document.getElementById('boot-fill');
+  if(fill){ setTimeout(function(){ fill.style.transition='width .7s cubic-bezier(.4,0,.2,1)'; fill.style.width='100%'; }, 120); }
+  openIDB(function(){
+    loadState(function(){
+      setTimeout(function(){
+        var boot = document.getElementById('boot-screen');
+        boot.style.opacity = '0';
+        setTimeout(function(){
+          boot.style.display = 'none';
+          startLiveCounter();
+          ST.name ? enterApp() : showLogin();
+        }, 500);
+      }, 1900);
+    });
+  });
+});
+
+/* ── HELPERS ── */
+function fmtDist(m){ return m>=1000 ? (m/1000).toFixed(2)+' km' : Math.round(m)+' m'; }
+function updatePtsUI(){
+  document.getElementById('pts-disp').textContent = ST.totalPts;
+  document.getElementById('mi-pts').textContent   = ST.totalPts+' P';
+  idbSave('pts', ST.totalPts);
+}
+function shortAngleDist(from, to){ return ((to-from+540)%360)-180; }
+
+function beepErr(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,.3,.6].forEach(function(t){
+      var o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type='sawtooth'; o.frequency.setValueAtTime(800,ctx.currentTime+t);
+      g.gain.setValueAtTime(.2,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+t+.2);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+.2);
+    });
+  }catch(e){}
+}
+function beepOK(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.setValueAtTime(1200,ctx.currentTime);
+    g.gain.setValueAtTime(.1,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+.1);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+.1);
+  }catch(e){}
+}
+function beepAuth(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [1200,1500,1800].forEach(function(f,i){
+      var o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type='sine'; o.frequency.setValueAtTime(f,ctx.currentTime+i*.12);
+      g.gain.setValueAtTime(.15,ctx.currentTime+i*.12);
+      g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+i*.12+.1);
+      o.start(ctx.currentTime+i*.12); o.stop(ctx.currentTime+i*.12+.1);
+    });
+  }catch(e){}
+}
+
+/* ── LOGIN ── */
+function showLogin(){ document.getElementById('login-screen').style.display='flex'; }
+['p-name','p-key'].forEach(function(id){
+  var el=document.getElementById(id);
+  if(el) el.addEventListener('keypress', function(e){ if(e.key==='Enter') document.getElementById('btn-login').click(); });
+});
+
+document.getElementById('btn-login').addEventListener('click', function(){
+  var now=Date.now();
+  var fw=document.getElementById('fail-warn');
+  if(now < lockUntil){
+    fw.textContent='⚠ 접속 제한 중 ('+Math.ceil((lockUntil-now)/1000)+'초 후 재시도)';
+    return;
+  }
+  var name = document.getElementById('p-name').value.trim();
+  var key  = document.getElementById('p-key').value.trim();
+  if(name.length < 2){ alert('TREKKER 성명을 정확히 입력해주십시오.'); document.getElementById('p-name').focus(); return; }
+  var overlay=document.getElementById('system-overlay');
+  var otxt=document.getElementById('overlay-text');
+  var ls=document.getElementById('login-screen');
+
+  if(key !== CORRECT_PASS){
+    failCnt++;
+    beepErr();
+    if(navigator.vibrate) navigator.vibrate([100,50,100,50,100]);
+    ls.classList.add('glitch-active');
+    fw.textContent = '⚠ ACCESS DENIED · '+failCnt+'/3회 실패';
+    if(failCnt >= 3){
+      lockUntil = Date.now()+60000; failCnt=0;
+      document.getElementById('btn-login').disabled = true;
+      fw.textContent = '⚠ 접속 일시 제한 — 60초 후 재시도';
+      setTimeout(function(){ document.getElementById('btn-login').disabled=false; fw.textContent=''; }, 60000);
+    }
+    overlay.style.display='flex'; overlay.style.background='rgba(255,61,0,.12)';
+    otxt.style.cssText='color:#FF3D00;font-size:22px;letter-spacing:3px;text-shadow:0 0 14px rgba(255,61,0,.65)';
+    otxt.innerHTML='[ACCESS DENIED : 미인가 접속]';
+    setTimeout(function(){ ls.classList.remove('glitch-active'); overlay.style.display='none'; }, 1400);
+    return;
+  }
+
+  failCnt=0; beepOK();
+  if(navigator.vibrate) navigator.vibrate([50,100,200]);
+  fw.textContent='';
+  overlay.style.display='flex'; overlay.style.background='rgba(11,20,38,.97)';
+  otxt.style.cssText='color:#C6FF00;font-size:14px;letter-spacing:2px;text-shadow:0 0 10px rgba(198,255,0,.45)';
+  var msg='[ACCESS GRANTED : 트레커 인증 완료.\nGOAT GOSEONG PATHFINDER를 가동합니다.\n선택 코스 출발지와 체크포인트 좌표를 불러옵니다.\n독도법 마스터 보너스 +1,000P 활성화.]';
+  var tf='', idx=0;
+  var iv=setInterval(function(){
+    tf += msg.charAt(idx);
+    otxt.innerHTML = tf.replace(/\n/g,'<br>')+'<span class="blink-cursor">_</span>';
+    idx++;
+    if(idx >= msg.length){
+      clearInterval(iv);
+      otxt.innerHTML = tf.replace(/\n/g,'<br>');
+      setTimeout(function(){
+        overlay.style.transition='opacity .8s';
+        overlay.style.opacity='0';
+        setTimeout(function(){
+          overlay.style.display='none';
+          overlay.style.opacity='1';
+          overlay.style.transition='';
+          ST.name=name; ST.startTime=Date.now();
+          saveState(); registerSession(name); enterApp();
+        }, 800);
+      }, 1400);
+    }
+  }, 50);
+});
+
+/* ── ENTER APP ── */
+function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('disp-name').textContent = ST.name;
+  document.getElementById('dist-tot').textContent  = fmtDist(ST.totalDist);
+  updatePtsUI();
+  updatePfPanel();
+  if(ST.courseKey) selectCourse(ST.courseKey, true);
+  setInterval(function(){ if(ST.name) saveState(); }, 10000);
+  /* 30초 폴링 백업 */
+  setInterval(function(){ fetchLiveCount(); }, 30000);
+}
+
+/* ── ACCORDION ── */
+function toggleAcc(key){
+  var body=document.getElementById('body-'+key), arr=document.getElementById('arr-'+key);
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open); arr.classList.toggle('open',!open);
+}
+
+/* ── COURSE ── */
+document.querySelectorAll('.c-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){ selectCourse(this.dataset.course, false); });
+});
+function selectCourse(key, restore){
+  if(!COURSES[key]) return;
+  if(!restore && ST.courseKey!==key){
+    ST.cpIndex=0;
+    ST.cleared=[];
+    ST.totalPts=0;
+  }
+  ST.courseKey=key; saveState();
+  document.querySelectorAll('.c-tab').forEach(function(t){ t.classList.remove('active'); });
+  var tab=document.querySelector('[data-course="'+key+'"]'); if(tab) tab.classList.add('active');
+  document.getElementById('course-banner-lbl').textContent = COURSES[key].shortName;
+  document.getElementById('mi-course').textContent         = COURSES[key].shortName;
+  document.getElementById('start-name').textContent        = COURSES[key].waypoints[0].name;
+  START_LAT=COURSES[key].waypoints[0].lat;
+  START_LON=COURSES[key].waypoints[0].lon;
+  updatePtsUI();
+  if(leafMap){
+    var first=COURSES[key].waypoints[0];
+    if(leafStartMarker) leafStartMarker.setLatLng([first.lat,first.lon]).bindPopup('<b>🏁 출발지</b><br>'+first.name);
+    if(leafTargetMarker) leafTargetMarker.setLatLng([first.lat,first.lon]).bindPopup('<b>🎯 다음 목표</b><br>'+first.spot+' '+first.name);
+    if(curLat!==null && leafGuideLine) leafGuideLine.setLatLngs([[curLat,curLon],[first.lat,first.lon]]);
+  }
+  renderAccordions(); updateMiPanel();
+}
+function renderAccordions(){
+  var key=ST.courseKey; if(!key||!COURSES[key]) return;
+  var wps=COURSES[key].waypoints;
+  var lists={heritage:[],tourist:[],dining:[]};
+  wps.forEach(function(wp){ if(lists[wp.cat]) lists[wp.cat].push(wp); });
+  ['heritage','tourist','dining'].forEach(function(cat){
+    var ul=document.getElementById('list-'+cat); ul.innerHTML='';
+    lists[cat].forEach(function(wp){
+      var cleared=ST.cleared.indexOf(wp.id)!==-1;
+      var isActive=(wps.indexOf(wp)===ST.cpIndex && !cleared);
+      var dc=cleared?'cleared':isActive?'active':'';
+      var sc=cleared?'sc':isActive?'sa':'';
+      var st=cleared?'CLEARED':isActive?'TRACKING':'PENDING';
+      var pH=wp.premium?'<span style="color:var(--amber)">'+wp.pts+'P ★</span>':wp.pts+'P';
+      ul.innerHTML+='<li class="spot-item" id="sp-'+wp.id+'">'+
+        '<div class="spot-name"><div class="s-dot '+dc+'"></div>'+
+        '<div><div><span class="spot-no">'+wp.spot+'</span> '+wp.name+'</div>'+
+        '<div style="font-size:9px;color:rgba(255,255,255,.25);margin-top:1px">'+wp.desc+'</div></div></div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'+
+        '<div class="spot-st '+sc+'">'+st+'</div>'+
+        '<div class="spot-pts">'+pH+'</div></div></li>';
+    });
+    if(lists[cat].length>0){
+      document.getElementById('body-'+cat).classList.add('open');
+      document.getElementById('arr-'+cat).classList.add('open');
+    }
+  });
+}
+function updateMiPanel(){
+  var key=ST.courseKey; if(!key||!COURSES[key]) return;
+  var total=COURSES[key].waypoints.length, cleared=ST.cleared.length;
+  document.getElementById('mi-prog').textContent = cleared+' / '+total;
+  document.getElementById('mi-stat').textContent = cleared>=total ? 'COMPLETE!' : 'TRACKING';
+  document.getElementById('mi-stat').style.color = cleared>=total ? 'var(--accent)' : 'var(--amber)';
+  document.getElementById('course-banner-lbl').textContent = COURSES[key].shortName+' · '+cleared+'/'+total;
+}
+
+/* ── MATH ── */
+function calcBrg(la1,lo1,la2,lo2){
+  var r=Math.PI/180, dL=(lo2-lo1)*r;
+  var y=Math.sin(dL)*Math.cos(la2*r);
+  var x=Math.cos(la1*r)*Math.sin(la2*r)-Math.sin(la1*r)*Math.cos(la2*r)*Math.cos(dL);
+  return ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+}
+function calcDist(la1,lo1,la2,lo2){
+  var R=6371e3, r=Math.PI/180;
+  var a=Math.sin((la2-la1)*r/2)*Math.sin((la2-la1)*r/2)+
+        Math.cos(la1*r)*Math.cos(la2*r)*
+        Math.sin((lo2-lo1)*r/2)*Math.sin((lo2-lo1)*r/2);
+  return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+function updateRadarUI(){
+  if(smoothHdg!==null && curTgtBrg!==null)
+    document.getElementById('radar-sc').style.transform='rotate('+(curTgtBrg-smoothHdg)+'deg)';
+}
+
+/* ── RADAR ── */
+document.getElementById('radar-btn').addEventListener('click', function(){
+  isRadar = !isRadar;
+  if(isRadar){
+    this.classList.add('active');
+    this.textContent='📡 LOCAL RADAR : ON (추적 중)';
+    document.getElementById('radar-sc').style.display='block';
+    if(navigator.vibrate) navigator.vibrate([100,50,100]);
+    updateRadarUI();
+  }else{
+    this.classList.remove('active');
+    this.textContent='📡 LOCAL RADAR : OFF';
+    document.getElementById('radar-sc').style.display='none';
+  }
+});
+
+/* ── CHECKPOINT AUTH ── */
+document.getElementById('auth-btn').addEventListener('click', function(){
+  var key=ST.courseKey; if(!key||!COURSES[key]) return;
+  var wps=COURSES[key].waypoints; if(ST.cpIndex>=wps.length) return;
+  var wp=wps[ST.cpIndex]; if(ST.cleared.indexOf(wp.id)!==-1) return;
+
+  beepAuth();
+  if(navigator.vibrate) navigator.vibrate([200,100,200,100,500]);
+  ST.cleared.push(wp.id); ST.totalPts += wp.pts;
+  ST.cpIndex++;
+  while(ST.cpIndex<wps.length && ST.cleared.indexOf(wps[ST.cpIndex].id)!==-1) ST.cpIndex++;
+
+  updatePtsUI(); saveState(); renderAccordions(); updateMiPanel();
+  document.getElementById('auth-btn').style.display='none';
+
+  if(sbClient){
+    sbClient.from('trail_participants').insert([{
+      session_id:'AUTH_'+ST.name+'_'+Date.now(),
+      page:'2026-goat-goseong',
+      spot_id:wp.id, spot_name:wp.name, points_earned:wp.pts
+    }]).then(function(){}).catch(function(){});
+  }
+
+  if(ST.cleared.length >= wps.length){
+    var pfBonus=calcPathfinderBonus();
+    ST.totalPts += COURSES[key].bonus;
+    ST.totalPts += pfBonus;
+    updatePtsUI(); saveState();
+    var bonusMsg = pfBonus===MAP_BONUS_MAX ?
+      '🧭 지도를 한 번도 열지 않으셨습니다!\n독도법 마스터 보너스 전액 +'+pfBonus+'P 지급!' :
+      pfBonus>0 ?
+      '🧭 독도법 보너스 +'+pfBonus+'P 지급 (열람 '+ST.mapUsage+'회)' :
+      '🗺️ 지도 열람 횟수 초과로 독도법 보너스 없음';
+    alert('🎖️ 전 코스 완주!\n완주 보너스 +'+COURSES[key].bonus+'P\n'+bonusMsg+'\n\n최종 포인트: '+ST.totalPts+'P');
+    setTimeout(function(){ showCert(); }, 800);
+    return;
+  }
+
+  var msg = wp.premium ?
+    '🌟 프리미엄 거점 인증!\n+'+wp.pts+'P 적립!' :
+    '✅ '+wp.spot+' 인증 완료!\n+'+wp.pts+'P 적립!\n\n누적 포인트: '+ST.totalPts+'P\n다음 목표로 이동하십시오.';
+  alert(msg);
+});
+
+/* ── SYSTEM ENGAGE ── */
+document.getElementById('engage-btn').addEventListener('click', function(){
+  if(isTracking) return;
+  this.textContent='⚡ SYSTEM ACTIVE (작동 중)';
+  this.classList.add('active'); this.disabled=true;
+  isTracking=true;
+  document.getElementById('course-tabs').style.display='flex';
+  document.getElementById('radar-btn').style.display='block';
+  document.getElementById('map-btn').style.display='block';
+  document.getElementById('pf-panel').style.display='block';
+  var badge=document.getElementById('gps-badge');
+  badge.className='gps-badge scanning'; badge.textContent='GPS SEARCHING...';
+
+  function attachSensors(){
+    window.addEventListener('deviceorientationabsolute', handleOri, true);
+    window.addEventListener('deviceorientation',         handleOri, true);
+    requestAnimationFrame(sensorLoop);
+  }
+  if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+    DeviceOrientationEvent.requestPermission()
+      .then(function(s){
+        if(s==='granted') attachSensors();
+        else alert('나침반 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
+      })
+      .catch(function(e){ console.warn('Orientation permission:', e); attachSensors(); });
+  }else{
+    attachSensors();
+  }
+  if(navigator.geolocation){
+    navigator.geolocation.watchPosition(onPos, function(err){
+      console.warn('GPS:', err);
+      var b=document.getElementById('gps-badge');
+      b.className='gps-badge'; b.textContent='GPS OFFLINE';
+    }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+  }
+});
+
+/* ── SENSOR HANDLER ── */
+function handleOri(e){
+  if(oriHandled) return;
+  oriHandled=true;
+  setTimeout(function(){ oriHandled=false; }, 16);
+  var hdg=null;
+  if(typeof e.webkitCompassHeading !== 'undefined' && e.webkitCompassHeading !== null){
+    hdg = e.webkitCompassHeading; /* iOS */
+  }else if(e.alpha !== null && e.alpha !== undefined){
+    hdg = (360 - e.alpha) % 360; /* Android */
+    var rot=0;
+    if(window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number')
+      rot = window.screen.orientation.angle;
+    else if(typeof window.orientation === 'number')
+      rot = window.orientation;
+    hdg = (hdg + rot + 360) % 360;
+  }
+  if(hdg !== null) rawHdg = hdg;
+  var beta=e.beta||0, gamma=e.gamma||0;
+  if(Math.abs(beta) < 80){ rawBeta=beta; rawGamma=gamma; }
+}
+
+/* ── LERP 렌더 루프 ── */
+function sensorLoop(){
+  smoothHdg = (smoothHdg + LERP_ALPHA * shortAngleDist(smoothHdg, rawHdg) + 360) % 360;
+  document.getElementById('c-face').style.transform = 'rotate('+(-smoothHdg)+'deg)';
+  document.getElementById('hdg-val').textContent = Math.round(smoothHdg).toString().padStart(3,'0');
+  if(isRadar) updateRadarUI();
+
+  smBeta  = smBeta  + LERP_LVL*(rawBeta -smBeta);
+  smGamma = smGamma + LERP_LVL*(rawGamma-smGamma);
+  var MAX_MOVE=18, MAX_TILT=25;
+  var mx=Math.max(-MAX_MOVE, Math.min(MAX_MOVE, (smGamma/MAX_TILT)*MAX_MOVE));
+  var my=Math.max(-MAX_MOVE, Math.min(MAX_MOVE, (smBeta /MAX_TILT)*MAX_MOVE));
+  var bub=document.getElementById('bubble');
+  bub.style.transform='translate(calc(-50% + '+mx+'px), calc(-50% + '+my+'px))';
+  var lvlTxt=document.getElementById('lvl-txt'), lvlAl=document.getElementById('lvl-aligned');
+  if(Math.abs(smBeta)<4 && Math.abs(smGamma)<4){
+    bub.style.background='var(--accent)'; bub.style.boxShadow='0 0 8px var(--accent)';
+    lvlTxt.textContent='LEVEL · ALIGNED'; lvlTxt.style.color='var(--accent)';
+    lvlAl.textContent='ALIGNED ✔'; lvlAl.style.color='var(--accent)';
+  }else{
+    bub.style.background='var(--red)'; bub.style.boxShadow='0 0 6px var(--red)';
+    lvlTxt.textContent='TILT WARNING'; lvlTxt.style.color='var(--red)';
+    lvlAl.textContent='TILT'; lvlAl.style.color='var(--red)';
+  }
+  requestAnimationFrame(sensorLoop);
+}
+
+/* ── GPS ── */
+function onPos(pos){
+  var lat=pos.coords.latitude, lon=pos.coords.longitude;
+  var alt=pos.coords.altitude, acc=pos.coords.accuracy;
+  var badge=document.getElementById('gps-badge');
+  var warnEl=document.getElementById('gps-weak-warn');
+
+  document.getElementById('acc-v').textContent = Math.round(acc);
+
+  if(acc > 50){
+    badge.className='gps-badge weak';
+    badge.textContent='GPS 신호 미약 ('+Math.round(acc)+'m)';
+    warnEl.style.display='block';
+    document.getElementById('sig-v').textContent='POOR';
+    return;
+  }
+
+  warnEl.style.display='none';
+  if(badge.className.indexOf('locked')===-1){
+    badge.className='gps-badge locked'; badge.textContent='GPS LOCK';
+    if(navigator.vibrate) navigator.vibrate(50);
+  }
+  document.getElementById('sig-v').textContent = acc<10?'EXCELLENT':acc<25?'GOOD':'FAIR';
+  if(alt!=null) document.getElementById('alt-v').textContent = Math.round(alt)+' m';
+
+  if(ST.lastLat !== null){
+    var step=calcDist(ST.lastLat, ST.lastLon, lat, lon);
+    if(step>1 && step<500){ ST.totalDist+=step; document.getElementById('dist-tot').textContent=fmtDist(ST.totalDist); }
+  }
+  ST.lastLat=lat; ST.lastLon=lon;
+  curLat=lat; curLon=lon;
+
+  idbLogLoc(lat, lon);
+  updateWeather(lat, lon);
+
+  if(document.getElementById('map-modal').style.display !== 'none' && leafUserMarker)
+    leafUserMarker.setLatLng([lat, lon]);
+
+  var key=ST.courseKey; if(!key||!COURSES[key]) return;
+  var wps=COURSES[key].waypoints; if(ST.cpIndex>=wps.length) return;
+  var wp=wps[ST.cpIndex];
+  var dist=calcDist(lat, lon, wp.lat, wp.lon);
+  curTgtBrg=calcBrg(lat, lon, wp.lat, wp.lon);
+  if(isRadar) updateRadarUI();
+
+  var dEl=document.getElementById('dist-tgt');
+  var aBtn=document.getElementById('auth-btn');
+  if(dist <= 50){
+    dEl.textContent='🎯 도착!'; dEl.style.color='var(--accent)';
+    aBtn.style.display='block';
+    if(navigator.vibrate) navigator.vibrate([100,50,100,50,300]);
+  }else{
+    dEl.textContent=fmtDist(dist);
+    dEl.style.color=dist<200?'var(--amber)':'var(--accent)';
+    aBtn.style.display='none';
+  }
+}
+
+/* ── WEATHER · OPEN-METEO ── */
+function getWxKor(id){
+  if(id===0) return '☀️ 맑음';
+  if(id===1||id===2) return '🌤️ 구름 조금';
+  if(id===3) return '☁️ 흐림';
+  if(id===45||id===48) return '🌫️ 안개';
+  if((id>=51&&id<=67)||(id>=80&&id<=82)) return '🌧️ 비';
+  if((id>=71&&id<=77)||(id>=85&&id<=86)) return '❄️ 눈';
+  if(id>=95) return '🌩️ 뇌우';
+  return '상태 확인 중';
+}
+function updateWeather(lat, lon){
+  if(Date.now()-wxLast < 600000) return;
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+    '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=Asia%2FSeoul';
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d.current) return;
+      wxLast=Date.now();
+      var c=d.current;
+      document.getElementById('wx-cond').textContent = getWxKor(c.weather_code);
+      document.getElementById('wx-temp').textContent = Math.round(c.apparent_temperature)+' °C';
+      var ws=c.wind_speed_10m, sEl=document.getElementById('wind-spd');
+      if(ws>10){
+        sEl.innerHTML='🚨 강풍주의 ('+ws.toFixed(1)+' m/s)';
+        sEl.classList.add('wind-warn');
+      }else{
+        sEl.innerHTML=ws.toFixed(1)+' m/s';
+        sEl.classList.remove('wind-warn');
+      }
+      document.getElementById('wind-arr').style.transform='rotate('+c.wind_direction_10m+'deg)';
+      var t=new Date();
+      document.getElementById('wx-time').textContent='UPDATED: '+
+        String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+    }).catch(function(e){ console.warn('WX:', e); });
+}
+
+/* ── CERTIFICATE ── */
+function showCert(){
+  document.getElementById('tracking-ui').style.display='none';
+  var cw=document.getElementById('cert-wrap'); cw.style.display='flex';
+  var key=ST.courseKey||'gyeong';
+  var course=COURSES[key], wps=course?course.waypoints:[];
+  var pfBonus=calcPathfinderBonus();
+
+  document.getElementById('cert-name').textContent   = ST.name||'';
+  document.getElementById('cert-course').textContent = course?course.name:'';
+  document.getElementById('cert-dist').textContent   = ST.totalDist>0?fmtDist(ST.totalDist):'-- km';
+  document.getElementById('cert-pts').textContent    = ST.totalPts;
+  document.getElementById('cert-map-usage').textContent = ST.mapUsage;
+
+  var pfBonusEl=document.getElementById('cert-pf-bonus');
+  if(pfBonus>0){
+    pfBonusEl.textContent='+'+pfBonus.toLocaleString()+' P';
+    pfBonusEl.classList.remove('cert-pf-zero');
+  }else{
+    pfBonusEl.textContent='0 P (열람 '+ST.mapUsage+'회)';
+    pfBonusEl.classList.add('cert-pf-zero');
+  }
+
+  var badgeEl=document.getElementById('cert-badge-icon');
+  var titleEl=document.getElementById('cert-title-txt');
+  if(ST.mapUsage===0 && ST.cleared.length>=wps.length){
+    badgeEl.textContent='🧭'; titleEl.textContent='PATHFINDER MASTER';
+  }else{
+    badgeEl.textContent='✔'; titleEl.textContent='ROUTE ACCOMPLISHED';
+  }
+
+  var now=new Date();
+  document.getElementById('cert-time').textContent =
+    now.getFullYear()+'.'+
+    String(now.getMonth()+1).padStart(2,'0')+'.'+
+    String(now.getDate()).padStart(2,'0')+' '+
+    String(now.getHours()).padStart(2,'0')+':'+
+    String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('cert-grid-lbl').textContent = wps.length+' CHECKPOINTS CLEARED';
+  var grid=document.getElementById('cert-grid'); grid.innerHTML='';
+  wps.forEach(function(wp){
+    var c=ST.cleared.indexOf(wp.id)!==-1;
+    grid.innerHTML+='<div class="cert-item">'+
+      '<span class="cert-ck" style="color:'+(c?'var(--accent)':'rgba(255,255,255,.2)')+'">'+
+      (c?'✔':'○')+'</span>'+
+      '<span style="color:'+(c?'rgba(255,255,255,.7)':'rgba(255,255,255,.25)')+'">'+
+      wp.spot+' '+wp.name+'</span></div>';
+  });
+}
+
+document.getElementById('btn-dl').addEventListener('click', function(){
+  var btn=this; btn.textContent='⏳ 이미지 생성 중...';
+  html2canvas(document.getElementById('cert-card'), {backgroundColor:'#060E1C', scale:3})
+    .then(function(canvas){
+      var a=document.createElement('a');
+      a.download='GOAT_GOSEONG_'+(COURSES[ST.courseKey]?COURSES[ST.courseKey].shortName:'ROUTE')+'_'+(ST.name||'TREKKER')+'.png';
+      a.href=canvas.toDataURL('image/png');
+      a.click();
+      btn.textContent='📷 디지털 인증서 갤러리 저장';
+    })
+    .catch(function(){
+      alert('저장 오류. 화면을 직접 캡처해주세요.');
+      btn.textContent='📷 디지털 인증서 갤러리 저장';
+    });
+});
+
+/* ── HIDDEN GESTURES ── */
+var topC=0;
+document.getElementById('hdr').addEventListener('click', function(){
+  topC++; if(topC>=3){ showCert(); topC=0; }
+  setTimeout(function(){ topC=0; }, 1000);
+});
+var rstC=0;
+document.getElementById('footer-reset').addEventListener('click', function(){
+  rstC++;
+  if(rstC>=5){
+    if(confirm('시스템을 완전 초기화합니다.\n모든 데이터가 삭제됩니다.')){
+      if(idb){ idb.transaction(IDB_SESS,'readwrite').objectStore(IDB_SESS).clear(); }
+      location.reload();
+    }
+    rstC=0;
+  }
+  setTimeout(function(){ rstC=0; }, 1500);
+});
+
+/* ── WAYPOINT DATA ── */
+var COURSES = {
+  market:{name:'4 DAYS · GOAT GOSEONG 100K',shortName:'100K',totalSpots:12,bonus:3000,waypoints:[
+    {id:1,spot:'CP 01',name:'화암사 제1주차장',lat:38.262,lon:128.470,cat:'heritage',pts:500,premium:false,desc:'100K 출발점'},
+    {id:2,spot:'CP 02',name:'수바위 권역',lat:38.258,lon:128.478,cat:'heritage',pts:500,premium:false,desc:'산길·숲길 구간'},
+    {id:3,spot:'CP 03',name:'청간정 권역',lat:38.267,lon:128.556,cat:'tourist',pts:1000,premium:true,desc:'D1 도착권'},
+    {id:4,spot:'CP 04',name:'천학정 권역',lat:38.300,lon:128.543,cat:'tourist',pts:500,premium:false,desc:'해안길 구간'},
+    {id:5,spot:'CP 05',name:'능파대 권역',lat:38.318,lon:128.533,cat:'tourist',pts:500,premium:false,desc:'해안 지형 구간'},
+    {id:6,spot:'CP 06',name:'송지호 권역',lat:38.337,lon:128.512,cat:'tourist',pts:1000,premium:true,desc:'D2 도착권'},
+    {id:7,spot:'CP 07',name:'왕곡마을 권역',lat:38.346,lon:128.515,cat:'dining',pts:500,premium:false,desc:'마을길 구간'},
+    {id:8,spot:'CP 08',name:'가진항 권역',lat:38.385,lon:128.480,cat:'dining',pts:500,premium:false,desc:'항구·마을 구간'},
+    {id:9,spot:'CP 09',name:'탑동리 권역',lat:38.390,lon:128.410,cat:'heritage',pts:1000,premium:true,desc:'D3 도착권'},
+    {id:10,spot:'CP 10',name:'건봉사 권역',lat:38.420,lon:128.350,cat:'heritage',pts:500,premium:false,desc:'숲길·옛길 구간'},
+    {id:11,spot:'CP 11',name:'거진 권역',lat:38.445,lon:128.452,cat:'dining',pts:500,premium:false,desc:'북부 해안 구간'},
+    {id:12,spot:'CP 12',name:'화진포 FINISH',lat:38.475,lon:128.441,cat:'dining',pts:1000,premium:true,desc:'100K 완주점'}
+  ]},
+  nopo:{name:'3 DAYS · GOAT GOSEONG 75K',shortName:'75K',totalSpots:9,bonus:3000,waypoints:[
+    {id:1,spot:'CP 01',name:'청간정 권역',lat:38.267,lon:128.556,cat:'tourist',pts:500,premium:false,desc:'75K 출발권'},
+    {id:2,spot:'CP 02',name:'천학정 권역',lat:38.300,lon:128.543,cat:'tourist',pts:500,premium:false,desc:'해안길 구간'},
+    {id:3,spot:'CP 03',name:'능파대 권역',lat:38.318,lon:128.533,cat:'tourist',pts:500,premium:false,desc:'해안 지형 구간'},
+    {id:4,spot:'CP 04',name:'송지호 권역',lat:38.337,lon:128.512,cat:'tourist',pts:1000,premium:true,desc:'호수길 구간'},
+    {id:5,spot:'CP 05',name:'왕곡마을 권역',lat:38.346,lon:128.515,cat:'dining',pts:500,premium:false,desc:'마을길 구간'},
+    {id:6,spot:'CP 06',name:'가진항 권역',lat:38.385,lon:128.480,cat:'dining',pts:500,premium:false,desc:'항구·마을 구간'},
+    {id:7,spot:'CP 07',name:'건봉사 권역',lat:38.420,lon:128.350,cat:'heritage',pts:1000,premium:true,desc:'숲길·옛길 구간'},
+    {id:8,spot:'CP 08',name:'거진 권역',lat:38.445,lon:128.452,cat:'dining',pts:500,premium:false,desc:'북부 해안 구간'},
+    {id:9,spot:'CP 09',name:'화진포 FINISH',lat:38.475,lon:128.441,cat:'dining',pts:1000,premium:true,desc:'75K 완주점'}
+  ]},
+  gyeong:{name:'2 DAYS · GOAT GOSEONG 35K',shortName:'35K',totalSpots:6,bonus:3000,waypoints:[
+    {id:1,spot:'CP 01',name:'가진항 권역',lat:38.385,lon:128.480,cat:'dining',pts:500,premium:false,desc:'35K 출발권'},
+    {id:2,spot:'CP 02',name:'간성 권역',lat:38.378,lon:128.467,cat:'dining',pts:500,premium:false,desc:'마을길 구간'},
+    {id:3,spot:'CP 03',name:'탑동리 권역',lat:38.390,lon:128.410,cat:'heritage',pts:1000,premium:true,desc:'D1 도착권'},
+    {id:4,spot:'CP 04',name:'건봉사 권역',lat:38.420,lon:128.350,cat:'heritage',pts:500,premium:false,desc:'숲길·옛길 구간'},
+    {id:5,spot:'CP 05',name:'거진 권역',lat:38.445,lon:128.452,cat:'tourist',pts:500,premium:false,desc:'북부 해안 구간'},
+    {id:6,spot:'CP 06',name:'화진포 FINISH',lat:38.475,lon:128.441,cat:'dining',pts:1000,premium:true,desc:'35K 완주점'}
+  ]}
+};
+</script>
+</body>
+</html>
